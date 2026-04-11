@@ -3,7 +3,7 @@ import random
 
 data = []
 
-for _ in range(5000):
+for _ in range(10000):
     current_score = random.randint(30, 80)
     target_score = random.randint(current_score + 5, 100)
 
@@ -19,7 +19,7 @@ for _ in range(5000):
     improvement = base_gain * efficiency_effect * error_penalty
 
     # noise ekle
-    noise = random.uniform(-5, 5)
+    noise = random.uniform(-2, 2)
 
     predicted_score = current_score + improvement + noise
 
