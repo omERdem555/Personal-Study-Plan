@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 df = pd.read_csv("data.csv")
 
 # input ve output ayır
-X = df.drop("predicted_score", axis=1)
-y = df["predicted_score"]
+X = df.drop("improvement", axis=1)
+y = df["improvement"]   
 
 # train / test split
 X_train, X_test, y_train, y_test = train_test_split(
@@ -32,7 +32,7 @@ y_pred = model.predict(X_test)
 
 # hata hesapla
 mae = mean_absolute_error(y_test, y_pred)
-print(f"MAE (ortalama hata): {mae:.2f}")
+print(f"MAE (ortalama hata - improvement): {mae:.2f}")
 
 # 🔴 MODELİ KAYDET
 joblib.dump(model, "model.pkl")

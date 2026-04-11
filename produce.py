@@ -18,7 +18,7 @@ for _ in range(5000):
 
     improvement = base_gain * efficiency_effect * error_penalty
 
-    # noise ekle (çok önemli)
+    # noise ekle
     noise = random.uniform(-5, 5)
 
     predicted_score = current_score + improvement + noise
@@ -26,13 +26,16 @@ for _ in range(5000):
     # sınırları kontrol et
     predicted_score = max(0, min(100, predicted_score))
 
+    # 🔴 YENİ: GERÇEK improvement hesapla
+    final_improvement = predicted_score - current_score
+
     data.append([
         current_score,
         target_score,
         study_time,
         efficiency,
         topic_error_rate,
-        predicted_score
+        final_improvement   # 🔴 artık bunu kullanıyoruz
     ])
 
 df = pd.DataFrame(data, columns=[
@@ -41,7 +44,7 @@ df = pd.DataFrame(data, columns=[
     "study_time",
     "efficiency",
     "topic_error_rate",
-    "predicted_score"
+    "improvement"   # 🔴 değişti
 ])
 
 df.to_csv("data.csv", index=False)
