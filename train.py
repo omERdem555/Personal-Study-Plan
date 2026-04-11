@@ -1,42 +1,48 @@
 import pandas as pd
-import random
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error
+import joblib
+import matplotlib.pyplot as plt
 
-data = []
+# veriyi yükle
+df = pd.read_csv("data.csv")
 
-for _ in range(1000):
-    current_score = random.randint(30, 80)
-    target_score = random.randint(current_score + 5, 100)
+# input ve output ayır
+X = df.drop("predicted_score", axis=1)
+y = df["predicted_score"]
 
-    study_time = random.randint(30, 180)  # dakika
-    efficiency = random.randint(1, 5)
-    topic_error_rate = round(random.uniform(0.1, 0.6), 2)
+# train / test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-    # improvement hesapla
-    improvement = (study_time * 0.1) * (efficiency / 5) * (1 - topic_error_rate)
+# model oluştur
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=10,
+    random_state=42
+)
 
-    predicted_score = current_score + improvement
+# modeli eğit
+model.fit(X_train, y_train)
 
-    if predicted_score > target_score:
-        predicted_score = target_score
+# tahmin yap
+y_pred = model.predict(X_test)
 
-    data.append([
-        current_score,
-        target_score,
-        study_time,
-        efficiency,
-        topic_error_rate,
-        predicted_score
-    ])
+# hata hesapla
+mae = mean_absolute_error(y_test, y_pred)
+print(f"MAE (ortalama hata): {mae:.2f}")
 
-df = pd.DataFrame(data, columns=[
-    "current_score",
-    "target_score",
-    "study_time",
-    "efficiency",
-    "topic_error_rate",
-    "predicted_score"
-])
+# 🔴 MODELİ KAYDET
+joblib.dump(model, "model.pkl")
+print("Model kaydedildi: model.pkl")
 
-df.to_csv("data.csv", index=False)
+# 🔴 FEATURE IMPORTANCE
+importances = model.feature_importances_
+features = X.columns
 
-print("Veri seti oluşturuldu!")
+plt.barh(features, importances)
+plt.xlabel("Önem")
+plt.title("Feature Importance")
+plt.show()
