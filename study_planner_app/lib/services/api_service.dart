@@ -14,22 +14,30 @@ class ApiService {
     required double currentNet,
     required double targetNet,
   }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/predict"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "subject": subject,
-        "total_questions": totalQuestions,
-        "correct": correct,
-        "wrong": wrong,
-        "time_spent": timeSpent,
-        "difficulty": difficulty,
-        "current_net": currentNet,
-        "target_net": targetNet
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/predict"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "subject": subject,
+          "total_questions": totalQuestions,
+          "correct": correct,
+          "wrong": wrong,
+          "time_spent": timeSpent,
+          "difficulty": difficulty,
+          "current_net": currentNet,
+          "target_net": targetNet
+        }),
+      );
 
-    return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network Error: $e');
+    }
   }
 
   static Future<Map<String, dynamic>> getPlan({
@@ -40,19 +48,27 @@ class ApiService {
     required double currentNet,
     required double targetNet,
   }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/plan"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "subject": subject,
-        "total_questions": totalQuestions,
-        "correct": correct,
-        "wrong": wrong,
-        "current_net": currentNet,
-        "target_net": targetNet
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/plan"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "subject": subject,
+          "total_questions": totalQuestions,
+          "correct": correct,
+          "wrong": wrong,
+          "current_net": currentNet,
+          "target_net": targetNet
+        }),
+      );
 
-    return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('API Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network Error: $e');
+    }
   }
 }
