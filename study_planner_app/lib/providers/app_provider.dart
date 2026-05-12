@@ -16,9 +16,9 @@ class AppProvider extends ChangeNotifier {
   bool get isOnboarded => _user != null;
 
   Future<void> loadData() async {
-    _user = LocalStorageService.getUser();
-    _testResults = LocalStorageService.getTestResults();
-    _studyPlans = LocalStorageService.getStudyPlans();
+    _user = await LocalStorageService.getUser();
+    _testResults = await LocalStorageService.getTestResults();
+    _studyPlans = await LocalStorageService.getStudyPlans();
     notifyListeners();
   }
 

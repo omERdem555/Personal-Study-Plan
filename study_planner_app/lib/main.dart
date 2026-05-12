@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
@@ -8,9 +10,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Hive
-  await Hive.initFlutter();
+  if (!kIsWeb) {
+    await Hive.initFlutter();
+  } else {
+    Hive.init('');
+  }
   await Hive.openBox('user_data');
   await Hive.openBox('test_results');
+  await Hive.openBox('study_plans');
 
   runApp(const MyApp());
 }

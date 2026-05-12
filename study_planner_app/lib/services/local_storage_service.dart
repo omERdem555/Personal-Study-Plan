@@ -8,45 +8,75 @@ class LocalStorageService {
   static const String testBox = 'test_results';
   static const String planBox = 'study_plans';
 
+  static Box? _userBox;
+  static Box? _testBox;
+  static Box? _planBox;
+
+  static Future<Box> _getUserBox() async {
+    _userBox ??= await Hive.openBox(userBox);
+    return _userBox!;
+  }
+
+  static Future<Box> _getTestBox() async {
+    _testBox ??= await Hive.openBox(testBox);
+    return _testBox!;
+  }
+
+  static Future<Box> _getPlanBox() async {
+    _planBox ??= await Hive.openBox(planBox);
+    return _planBox!;
+  }
+
   static Future<void> saveUser(User user) async {
-    final box = Hive.box(userBox);
+    final box = await _getUserBox();
     await box.put('user', user.toJson());
   }
 
-  static User? getUser() {
-    final box = Hive.box(userBox);
+  static Future<User?> getUser() async {
+    final box = await _getUserBox();
     final data = box.get('user');
     if (data != null) {
-      return User.fromJson(data);
+      final map = _castToStringDynamicMap(data);
+      return User.fromJson(map);
     }
     return null;
   }
 
   static Future<void> saveTestResult(TestResult result) async {
-    final box = Hive.box(testBox);
+    final box = await _getTestBox();
     final key = result.date.toIso8601String();
     await box.put(key, result.toJson());
   }
 
-  static List<TestResult> getTestResults() {
-    final box = Hive.box(testBox);
-    return box.values.map((e) => TestResult.fromJson(e)).toList();
+  static Future<List<TestResult>> getTestResults() async {
+    final box = await _getTestBox();
+    return box.values.map((e) => TestResult.fromJson(_castToStringDynamicMap(e))).toList();
   }
 
   static Future<void> saveStudyPlan(StudyPlan plan) async {
-    final box = Hive.box(planBox);
+    final box = await _getPlanBox();
     final key = plan.date.toIso8601String();
     await box.put(key, plan.toJson());
   }
 
-  static List<StudyPlan> getStudyPlans() {
-    final box = Hive.box(planBox);
-    return box.values.map((e) => StudyPlan.fromJson(e)).toList();
+  static Future<List<StudyPlan>> getStudyPlans() async {
+    final box = await _getPlanBox();
+    return box.values.map((e) => StudyPlan.fromJson(_castToStringDynamicMap(e))).toList();
+  }
+
+  static Map<String, dynamic> _castToStringDynamicMap(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    return Map<String, dynamic>.from(data as Map);
   }
 
   static Future<void> clearAllData() async {
-    await Hive.box(userBox).clear();
-    await Hive.box(testBox).clear();
-    await Hive.box(planBox).clear();
+    final userBox = await _getUserBox();
+    final testBox = await _getTestBox();
+    final planBox = await _getPlanBox();
+    await userBox.clear();
+    await testBox.clear();
+    await planBox.clear();
   }
 }
