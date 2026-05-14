@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import 'onboarding_screen.dart';
 import 'home_screen.dart';
+import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,62 +20,56 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     await context.read<AppProvider>().loadData();
+    await Future.delayed(const Duration(milliseconds: 800));
 
-    // Simulate loading time
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      final isOnboarded = context.read<AppProvider>().isOnboarded;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => isOnboarded ? const HomeScreen() : const OnboardingScreen(),
-        ),
-      );
-    }
+    if (!mounted) return;
+    final isOnboarded = context.read<AppProvider>().isOnboarded;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => isOnboarded ? const HomeScreen() : const OnboardingScreen(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF3366FF), Color(0xFF00B8D4)],
           ),
         ),
         child: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.school,
-                size: 80,
-                color: Theme.of(context).colorScheme.onPrimary,
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.school_outlined, size: 68, color: Colors.white),
               ),
               const SizedBox(height: 24),
               Text(
-                'Personal Study Planner',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
+                'AI Destekli �al��ma Plan�',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               Text(
-                'AI-Powered Learning',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
-                    ),
+                'Performans�n�z� analiz eden ve g�nl�k �al��ma plan� olu�turan bir yard�mc�.',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
+              const SizedBox(height: 36),
+              const CircularProgressIndicator(color: Colors.white),
             ],
           ),
         ),

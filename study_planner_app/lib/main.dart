@@ -1,55 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'providers/app_provider.dart';
-import 'screens/splash_screen.dart';
+
+import 'package:study_planner_app/providers/app_provider.dart';
+import 'package:study_planner_app/screens/splash_screen.dart';
+import 'package:study_planner_app/storage/local_storage_service.dart';
+import 'package:study_planner_app/utils/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Hive
-  if (!kIsWeb) {
-    await Hive.initFlutter();
-  } else {
-    Hive.init('');
-  }
-  await Hive.openBox('user_data');
-  await Hive.openBox('test_results');
-  await Hive.openBox('study_plans');
-
-  runApp(const MyApp());
+  await LocalStorageService.init();
+  runApp(const StudyPlannerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class StudyPlannerApp extends StatelessWidget {
+  const StudyPlannerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AppProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Personal Study Planner',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.light,
-          ),
-        ),
-        darkTheme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.blue,
-            brightness: Brightness.dark,
-          ),
-        ),
-        home: const SplashScreen(),
-      ),
+    return ChangeNotifierProvider(
+      create: (_) => AppProvider(),
+      builder: (context, child) {
+        final provider = context.watch<AppProvider>();
+        return MaterialApp(
+          title: 'AI Destekli Çalışma Planı',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: provider.themeMode,
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }

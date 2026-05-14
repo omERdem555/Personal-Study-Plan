@@ -1,394 +1,177 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../utils/helpers.dart';
-import '../models/test_result.dart';
-import '../models/study_plan.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final testResults = context.watch<AppProvider>().testResults;
-    final studyPlans = context.watch<AppProvider>().studyPlans;
-    final user = context.watch<AppProvider>().user;
+    final provider = context.watch<AppProvider>();
+    final user = provider.user;
 
     if (user == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Calculate weekly stats
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final weeklyResults = testResults.where((r) => r.date.isAfter(weekStart)).toList();
-
-    final totalTests = weeklyResults.length;
-    final avgNet = weeklyResults.isNotEmpty
-        ? weeklyResults.map((r) => r.predictedNet).reduce((a, b) => a + b) / weeklyResults.length
-        : 0.0;
-    final totalStudyTime = weeklyResults.isNotEmpty
-        ? weeklyResults.map((r) => r.studyTime).reduce((a, b) => a + b)
-        : 0;
+    final netTrend = provider.netTrend;
+    final studyTimeTrend = provider.studyTimeTrend;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Raporlar'),
-      ),
-      body: testResults.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.bar_chart, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    'Henüz rapor verisi yok',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Test sonuçları girerek raporlarınızı görün',
-                    style: TextStyle(color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+      appBar: AppBar(title: const Text('Raporlar')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        children: [
+          Text('Haftal�k & Ayl�k Rapor', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: Padding(
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Haftalık Özet',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Test Sayısı',
-                          value: '$totalTests',
-                          icon: Icons.assignment,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Ort. Net',
-                          value: avgNet.toStringAsFixed(1),
-                          icon: Icons.trending_up,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Toplam Süre',
-                          value: '${totalStudyTime}dk',
-                          icon: Icons.access_time,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatCard(
-                          title: 'Hedefe Uzaklık',
-                          value: '${(user.targetNet - user.currentNet).toStringAsFixed(1)}',
-                          icon: Icons.flag,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Net Artışı Grafiği',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: SizedBox(
-                        height: 200,
-                        child: _NetProgressChart(testResults: testResults, targetNet: user.targetNet),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Son Test Sonuçları',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...testResults.take(5).map((result) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _TestResultCard(result: result),
-                  )).toList(),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Çalışma Planları',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (studyPlans.isEmpty)
-                    const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('Henüz çalışma planı oluşturulmamış'),
-                      ),
-                    ),
-                  if (!studyPlans.isEmpty)
-                    ...studyPlans.take(3).map((plan) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _StudyPlanCard(plan: plan),
-                    )).toList(),
+                  Text('Genel �zet', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 14),
+                  _ReportMetric(label: 'Toplam Test', value: provider.totalTests.toString()),
+                  _ReportMetric(label: 'Ortalama Net', value: provider.averageNet.toStringAsFixed(1)),
+                  _ReportMetric(label: 'Hedef A����', value: provider.targetGap.toStringAsFixed(1)),
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 20),
+          Text('Net Trend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                height: 200,
+                child: netTrend.isEmpty
+                    ? const Center(child: Text('Veri yok'))
+                    : LineChart(
+                        LineChartData(
+                          minX: 0,
+                          maxX: (netTrend.length - 1).toDouble(),
+                          minY: netTrend.reduce((a, b) => a < b ? a : b) - 5,
+                          maxY: netTrend.reduce((a, b) => a > b ? a : b) + 5,
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withAlpha((0.12 * 255).round()), strokeWidth: 1),
+                          ),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                interval: 5,
+                                getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 28,
+                                interval: 1,
+                                getTitlesWidget: (value, meta) => Text('${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              ),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: netTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                              isCurved: true,
+                              color: Theme.of(context).colorScheme.primary,
+                              barWidth: 3,
+                              belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withOpacity(0.16)),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('Calisma Suresi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 14),
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                height: 200,
+                child: studyTimeTrend.isEmpty
+                    ? const Center(child: Text('Veri yok'))
+                    : BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          barGroups: studyTimeTrend.asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: entry.value.toDouble(),
+                                  color: Theme.of(context).colorScheme.secondary,
+                                  width: 16,
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                          gridData: FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                interval: 10,
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 28,
+                                getTitlesWidget: (value, meta) => Text('${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              ),
+                            ),
+                          ),
+                          maxY: studyTimeTrend.reduce((a, b) => a > b ? a : b).toDouble() + 10,
+                          minY: 0,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String title;
+class _ReportMetric extends StatelessWidget {
+  final String label;
   final String value;
-  final IconData icon;
-  final Color color;
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+  const _ReportMetric({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NetProgressChart extends StatelessWidget {
-  final List testResults;
-  final double targetNet;
-
-  const _NetProgressChart({
-    required this.testResults,
-    required this.targetNet,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (testResults.isEmpty) {
-      return const Center(
-        child: Text('Grafik için veri yok'),
-      );
-    }
-
-    // Simple line chart representation
-    return CustomPaint(
-      painter: _NetChartPainter(testResults, targetNet),
-      child: Container(),
-    );
-  }
-}
-
-class _NetChartPainter extends CustomPainter {
-  final List testResults;
-  final double targetNet;
-
-  _NetChartPainter(this.testResults, this.targetNet);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blue
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    final targetPaint = Paint()
-      ..color = Colors.red.withOpacity(0.5)
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    if (testResults.length < 2) return;
-
-    final points = <Offset>[];
-    final maxNet = testResults.map((r) => r.predictedNet).reduce((a, b) => a > b ? a : b);
-    final minNet = testResults.map((r) => r.predictedNet).reduce((a, b) => a < b ? a : b);
-
-    for (int i = 0; i < testResults.length; i++) {
-      final x = (i / (testResults.length - 1)) * size.width;
-      final y = size.height - ((testResults[i].predictedNet - minNet) / (maxNet - minNet)) * size.height;
-      points.add(Offset(x, y));
-    }
-
-    final path = Path();
-    path.moveTo(points[0].dx, points[0].dy);
-    for (int i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
-    }
-
-    canvas.drawPath(path, paint);
-
-    // Draw target line
-    final targetY = size.height - ((targetNet - minNet) / (maxNet - minNet)) * size.height;
-    canvas.drawLine(Offset(0, targetY), Offset(size.width, targetY), targetPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _TestResultCard extends StatelessWidget {
-  final TestResult result;
-
-  const _TestResultCard({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  result.subject,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  AppDateUtils.formatDate(result.date),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  'Net: ${result.predictedNet.toStringAsFixed(1)}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  '${result.correct}/${result.totalQuestions}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StudyPlanCard extends StatelessWidget {
-  final StudyPlan plan;
-
-  const _StudyPlanCard({required this.plan});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  plan.subject,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  AppDateUtils.formatDate(plan.date),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${plan.studyTime} dk',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  'Tahmin: ${plan.predictedNet.toStringAsFixed(1)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+          Text(value, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }

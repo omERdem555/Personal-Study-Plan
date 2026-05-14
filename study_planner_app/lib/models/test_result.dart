@@ -8,6 +8,7 @@ class TestResult {
   final double currentNet;
   final double targetNet;
   final double predictedNet;
+  final String topicWeakness;
   final DateTime date;
 
   TestResult({
@@ -20,6 +21,7 @@ class TestResult {
     required this.currentNet,
     required this.targetNet,
     required this.predictedNet,
+    required this.topicWeakness,
     required this.date,
   });
 
@@ -34,6 +36,7 @@ class TestResult {
       'currentNet': currentNet,
       'targetNet': targetNet,
       'predictedNet': predictedNet,
+      'topicWeakness': topicWeakness,
       'date': date.toIso8601String(),
     };
   }
@@ -45,10 +48,11 @@ class TestResult {
       correct: json['correct'],
       wrong: json['wrong'],
       studyTime: json['studyTime'],
-      difficulty: json['difficulty'],
-      currentNet: json['currentNet'],
-      targetNet: json['targetNet'],
-      predictedNet: json['predictedNet'],
+      difficulty: (json['difficulty'] as num).toDouble(),
+      currentNet: (json['currentNet'] as num).toDouble(),
+      targetNet: (json['targetNet'] as num).toDouble(),
+      predictedNet: (json['predictedNet'] as num).toDouble(),
+      topicWeakness: json['topicWeakness'] ?? '',
       date: DateTime.parse(json['date']),
     );
   }

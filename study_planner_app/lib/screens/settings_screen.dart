@@ -1,208 +1,170 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../widgets/custom_button.dart';
-import '../utils/helpers.dart';
-import 'splash_screen.dart';
+import '../screens/splash_screen.dart';
+import '../widgets/primary_button.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AppProvider>().user;
+    final provider = context.watch<AppProvider>();
+    final user = provider.user;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ayarlar'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kullanıcı Bilgileri',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            if (user != null) ...[
-              _SettingItem(
-                icon: Icons.person,
-                title: 'Ad',
-                value: user.name,
-              ),
-              _SettingItem(
-                icon: Icons.school,
-                title: 'Hedef Ders',
-                value: user.targetSubject,
-              ),
-              _SettingItem(
-                icon: Icons.trending_up,
-                title: 'Mevcut Net',
-                value: user.currentNet.toStringAsFixed(1),
-              ),
-              _SettingItem(
-                icon: Icons.flag,
-                title: 'Hedef Net',
-                value: user.targetNet.toStringAsFixed(1),
-              ),
-              _SettingItem(
-                icon: Icons.calendar_today,
-                title: 'Kayıt Tarihi',
-                value: AppDateUtils.formatDate(user.createdAt),
-              ),
-            ],
-            const SizedBox(height: 32),
-            Text(
-              'Uygulama',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            _SettingItem(
-              icon: Icons.info,
-              title: 'Versiyon',
-              value: '1.0.0',
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Veri Yönetimi',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              color: Colors.red[50],
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.warning, color: Colors.red[700]),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tehlikeli İşlem',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: Colors.red[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Bu işlem tüm verilerinizi kalıcı olarak silecektir. Bu işlem geri alınamaz.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.red[700],
-                          ),
-                    ),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'Tüm Verileri Sil',
-                      onPressed: () => _showDeleteConfirmation(context),
-                      backgroundColor: Colors.red,
-                      textColor: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+      appBar: AppBar(title: const Text('Ayarlar')),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        children: [
+          Text('Profil Bilgileri', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 18),
+          if (user != null) ...[
+            _SettingTile(label: 'Ad', value: user.name),
+            _SettingTile(label: 'Hedef Ders', value: user.targetSubject),
+            _SettingTile(label: 'Mevcut Net', value: user.currentNet.toStringAsFixed(1)),
+            _SettingTile(label: 'Hedef Net', value: user.targetNet.toStringAsFixed(1)),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Verileri Sil'),
-        content: const Text(
-          'Tüm test sonuçları, çalışma planları ve kullanıcı bilgileriniz silinecektir. Bu işlem geri alınamaz. Devam etmek istiyor musunuz?'
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
+          const SizedBox(height: 24),
+          Text('Uygulama', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 18),
+          SwitchListTile(
+            title: const Text('Karanl�k Mod'),
+            value: provider.isDarkMode,
+            onChanged: (value) => provider.toggleThemeMode(value),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await context.read<AppProvider>().clearAllData();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const SplashScreen()),
-                (route) => false,
-              );
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Sil'),
+          const SizedBox(height: 24),
+          Text('Veri Y�netimi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 18),
+          _ActionCard(
+            title: 'Hedef G�ncelle',
+            description: 'Mevcut net veya hedef netinizi g�ncelleyin.',
+            buttonLabel: 'G�ncelle',
+            onPressed: () => _showTargetDialog(context),
+          ),
+          const SizedBox(height: 16),
+          _ActionCard(
+            title: 'Verileri S�f�rla',
+            description: 'T�m kay�tl� kullan�c� ve test verilerini siler.',
+            buttonLabel: 'S�f�rla',
+            onPressed: () => _confirmReset(context),
+            buttonColor: Colors.red,
           ),
         ],
       ),
     );
   }
+
+  void _showTargetDialog(BuildContext context) {
+    final currentController = TextEditingController();
+    final targetController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Hedef G�ncelle'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: currentController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Mevcut Net')), 
+              TextField(controller: targetController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Hedef Net')),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('�ptal')),
+            TextButton(
+              onPressed: () {
+                final provider = context.read<AppProvider>();
+                final currentNet = double.tryParse(currentController.text);
+                final targetNet = double.tryParse(targetController.text);
+                if (currentNet != null || targetNet != null) {
+                  provider.updateUserProgress(currentNet: currentNet, targetNet: targetNet);
+                }
+                Navigator.of(context).pop();
+              },
+              child: const Text('Kaydet'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmReset(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Verileri Sil'),
+          content: const Text('Bu i�lem t�m verileri kal�c� olarak siler. Devam etmek istiyor musunuz?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('�ptal')),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await context.read<AppProvider>().clearAllData();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const SplashScreen()),
+                  (route) => false,
+                );
+              },
+              child: const Text('Sil', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
-class _SettingItem extends StatelessWidget {
-  final IconData icon;
-  final String title;
+class _SettingTile extends StatelessWidget {
+  final String label;
   final String value;
 
-  const _SettingItem({
-    required this.icon,
+  const _SettingTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(label),
+        subtitle: Text(value),
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final String title;
+  final String description;
+  final String buttonLabel;
+  final VoidCallback onPressed;
+  final Color buttonColor;
+
+  const _ActionCard({
     required this.title,
-    required this.value,
+    required this.description,
+    required this.buttonLabel,
+    required this.onPressed,
+    this.buttonColor = Colors.blue,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 1,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  Text(
-                    value,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ],
-              ),
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            Text(description, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+            const SizedBox(height: 14),
+            PrimaryButton(label: buttonLabel, onTap: onPressed, color: buttonColor),
           ],
         ),
       ),
