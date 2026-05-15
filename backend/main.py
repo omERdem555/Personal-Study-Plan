@@ -7,6 +7,10 @@ import random
 
 app = FastAPI()
 
+@app.get("/")
+def root():
+    return {"message": "Backend is running"}
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

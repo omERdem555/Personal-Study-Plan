@@ -90,7 +90,7 @@ class ReportsScreen extends StatelessWidget {
                               isCurved: true,
                               color: Theme.of(context).colorScheme.primary,
                               barWidth: 3,
-                              belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withOpacity(0.16)),
+                              belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withAlpha((0.16 * 255).round())),
                             ),
                           ],
                         ),
