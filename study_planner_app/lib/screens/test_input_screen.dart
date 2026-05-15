@@ -58,7 +58,7 @@ class _TestInputScreenState extends State<TestInputScreen> {
       setState(() => _predictedNet = (result['predicted_net'] as num).toDouble());
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Analiz hatas�: $error')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Analiz hatası: $error')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -86,7 +86,7 @@ class _TestInputScreenState extends State<TestInputScreen> {
 
     await context.read<AppProvider>().addTestResult(result);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test sonucu kaydedildi')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Test sonucu kaydedildi. Çalışma süresi ve zorluk verileri kaydedildi.')));
     _clearForm();
   }
 
@@ -104,7 +104,7 @@ class _TestInputScreenState extends State<TestInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Test Giri�i')),
+      appBar: AppBar(title: const Text('Test Giriş')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Form(
@@ -112,29 +112,29 @@ class _TestInputScreenState extends State<TestInputScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Yeni Test Sonucu', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text('Yeni Test Sonucu ve Analiz', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              Text('Ders, net ve �al��ma s�resi bilgilerinizi girin, AI tahmini ile do�ru planlay�n.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700])),
+              Text('Ders, net ve çalışma süresi bilgilerinizi girin, AI tahmini ile doğru planlayın.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700])),
               const SizedBox(height: 20),
-              TextFormField(controller: _subjectController, decoration: const InputDecoration(labelText: 'Ders Ad�'), validator: (value) => (value?.isEmpty ?? true) ? 'Ders ad�n� girin' : null),
+              TextFormField(controller: _subjectController, decoration: const InputDecoration(labelText: 'Ders Adı'), validator: (value) => (value?.isEmpty ?? true) ? 'Ders adını girin' : null),
               const SizedBox(height: 14),
               TextFormField(controller: _totalQuestionsController, decoration: const InputDecoration(labelText: 'Toplam Soru'), keyboardType: TextInputType.number, validator: _validatePositiveInt),
               const SizedBox(height: 14),
               Row(
                 children: [
-                  Expanded(child: TextFormField(controller: _correctController, decoration: const InputDecoration(labelText: 'Do�ru'), keyboardType: TextInputType.number, validator: _validateNonNegativeInt)),
+                  Expanded(child: TextFormField(controller: _correctController, decoration: const InputDecoration(labelText: 'Doğru'), keyboardType: TextInputType.number, validator: _validateNonNegativeInt)),
                   const SizedBox(width: 14),
-                  Expanded(child: TextFormField(controller: _wrongController, decoration: const InputDecoration(labelText: 'Yanl��'), keyboardType: TextInputType.number, validator: _validateNonNegativeInt)),
+                  Expanded(child: TextFormField(controller: _wrongController, decoration: const InputDecoration(labelText: 'Yanlış'), keyboardType: TextInputType.number, validator: _validateNonNegativeInt)),
                 ],
               ),
               const SizedBox(height: 14),
-              TextFormField(controller: _studyTimeController, decoration: const InputDecoration(labelText: '�al��ma S�resi (dk)'), keyboardType: TextInputType.number, validator: _validatePositiveInt),
+              TextFormField(controller: _studyTimeController, decoration: const InputDecoration(labelText: 'Çalışma Süresi (dk)'), keyboardType: TextInputType.number, validator: _validatePositiveInt),
               const SizedBox(height: 14),
               TextFormField(controller: _difficultyController, decoration: const InputDecoration(labelText: 'Zorluk (0.5 - 1.5)'), keyboardType: TextInputType.number, validator: _validateDifficulty),
               const SizedBox(height: 14),
-              TextFormField(controller: _weaknessController, decoration: const InputDecoration(labelText: 'Zay�f Konu (opsiyonel)'), keyboardType: TextInputType.text),
+              TextFormField(controller: _weaknessController, decoration: const InputDecoration(labelText: 'Zayıf Konu (opsiyonel)'), keyboardType: TextInputType.text),
               const SizedBox(height: 24),
-              _predictedNet == null ? PrimaryButton(label: 'Analiz Et', onTap: _analyze, isLoading: _isLoading) : PrimaryButton(label: 'Sonucu Kaydet', onTap: _saveResult, isLoading: _isLoading),
+              _predictedNet == null ? PrimaryButton(label: 'Analiz Et', onTap: _analyze, isLoading: _isLoading) : PrimaryButton(label: 'Sonucu Kaydet (${_studyTimeController.text} dk)', onTap: _saveResult, isLoading: _isLoading),
               if (_predictedNet != null) ...[
                 const SizedBox(height: 22),
                 Card(
@@ -145,11 +145,31 @@ class _TestInputScreenState extends State<TestInputScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Tahmini Net', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                        Text('Tahmini Sonuç', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
-                        Text(_predictedNet!.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Tahmin Edilen Net', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                                Text(_predictedNet!.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('Çalışma Süresi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                                Text('${_studyTimeController.text} dk', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 12),
-                        Text('Y�ksek do�ruluk hedefli bir plan i�in sonucu kaydedin.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                        Text('${_studyTimeController.text} dakika çalışma ile tahmin edilen netiniz: ${_predictedNet!.toStringAsFixed(1)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                        const SizedBox(height: 8),
+                        Text('Yüksek doğruluk hedefli bir plan için sonucu kaydedin.', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
                       ],
                     ),
                   ),
@@ -163,23 +183,23 @@ class _TestInputScreenState extends State<TestInputScreen> {
   }
 
   String? _validatePositiveInt(String? value) {
-    if (value?.isEmpty ?? true) return 'Bu alan bo� olamaz';
+    if (value?.isEmpty ?? true) return 'Bu alan boş olamaz';
     final number = int.tryParse(value!);
-    if (number == null || number <= 0) return 'Pozitif bir say� girin';
+    if (number == null || number <= 0) return 'Pozitif bir sayı girin';
     return null;
   }
 
   String? _validateNonNegativeInt(String? value) {
-    if (value?.isEmpty ?? true) return 'Bu alan bo� olamaz';
+    if (value?.isEmpty ?? true) return 'Bu alan boş olamaz';
     final number = int.tryParse(value!);
-    if (number == null || number < 0) return 'Ge�erli bir say� girin';
+    if (number == null || number < 0) return 'Geçerli bir sayı girin';
     return null;
   }
 
   String? _validateDifficulty(String? value) {
-    if (value?.isEmpty ?? true) return 'Bu alan bo� olamaz';
+    if (value?.isEmpty ?? true) return 'Bu alan boş olamaz';
     final number = double.tryParse(value!);
-    if (number == null || number < 0.5 || number > 1.5) return '0.5 - 1.5 aras� de�er girin';
+    if (number == null || number < 0.5 || number > 1.5) return '0.5 - 1.5 arası değer girin';
     return null;
   }
 }

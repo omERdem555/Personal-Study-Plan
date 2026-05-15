@@ -19,11 +19,11 @@ class ReportsScreen extends StatelessWidget {
     final studyTimeTrend = provider.studyTimeTrend;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Raporlar')),
+      appBar: AppBar(title: const Text('Raporlar ve İstatistikler')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         children: [
-          Text('Haftal�k & Ayl�k Rapor', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Haftalık & Aylık Rapor', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           Card(
             elevation: 2,
@@ -33,17 +33,17 @@ class ReportsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Genel �zet', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                  Text('Genel Özet', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 14),
                   _ReportMetric(label: 'Toplam Test', value: provider.totalTests.toString()),
                   _ReportMetric(label: 'Ortalama Net', value: provider.averageNet.toStringAsFixed(1)),
-                  _ReportMetric(label: 'Hedef A����', value: provider.targetGap.toStringAsFixed(1)),
+                  _ReportMetric(label: 'Hedef Açığı', value: provider.targetGap.toStringAsFixed(1)),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 20),
-          Text('Net Trend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Net Trendi (Gelişim)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           Card(
             elevation: 2,
@@ -56,9 +56,9 @@ class ReportsScreen extends StatelessWidget {
                     ? const Center(child: Text('Veri yok'))
                     : LineChart(
                         LineChartData(
-                          minX: 0,
-                          maxX: (netTrend.length - 1).toDouble(),
-                          minY: netTrend.reduce((a, b) => a < b ? a : b) - 5,
+                          minX: -0.5,
+                          maxX: (netTrend.length - 0.5).toDouble(),
+                          minY: (netTrend.reduce((a, b) => a < b ? a : b) - 5).clamp(0, double.infinity),
                           maxY: netTrend.reduce((a, b) => a > b ? a : b) + 5,
                           gridData: FlGridData(
                             show: true,
@@ -69,8 +69,8 @@ class ReportsScreen extends StatelessWidget {
                             leftTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
-                                reservedSize: 40,
-                                interval: 5,
+                                reservedSize: 50,
+                                interval: ((netTrend.reduce((a, b) => a > b ? a : b) - netTrend.reduce((a, b) => a < b ? a : b)) / 5).ceil().toDouble(),
                                 getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0), style: const TextStyle(color: Colors.grey, fontSize: 12)),
                               ),
                             ),
@@ -78,8 +78,8 @@ class ReportsScreen extends StatelessWidget {
                               sideTitles: SideTitles(
                                 showTitles: true,
                                 reservedSize: 28,
-                                interval: 1,
-                                getTitlesWidget: (value, meta) => Text('${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                interval: (netTrend.length / 5).ceil().toDouble(),
+                                getTitlesWidget: (value, meta) => Text('Test ${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 11)),
                               ),
                             ),
                           ),
@@ -99,7 +99,7 @@ class ReportsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Calisma Suresi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Çalışma Süresi Trendi (dakika)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           Card(
             elevation: 2,
@@ -109,7 +109,7 @@ class ReportsScreen extends StatelessWidget {
               child: SizedBox(
                 height: 200,
                 child: studyTimeTrend.isEmpty
-                    ? const Center(child: Text('Veri yok'))
+                    ? const Center(child: Text('Çalışma verisi henüz yok'))
                     : BarChart(
                         BarChartData(
                           alignment: BarChartAlignment.spaceAround,
@@ -125,21 +125,25 @@ class ReportsScreen extends StatelessWidget {
                               ],
                             );
                           }).toList(),
-                          gridData: FlGridData(show: false),
+                          gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withAlpha((0.12 * 255).round()), strokeWidth: 1)),
                           borderData: FlBorderData(show: false),
                           titlesData: FlTitlesData(
                             leftTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
-                                reservedSize: 40,
-                                interval: 10,
+                                reservedSize: 50,
+                                interval: (studyTimeTrend.reduce((a, b) => a > b ? a : b) / 5).ceil().toDouble(),
                               ),
                             ),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
-                                reservedSize: 28,
-                                getTitlesWidget: (value, meta) => Text('${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                reservedSize: 35,
+                                interval: (studyTimeTrend.length / 5).ceil().toDouble(),
+                                getTitlesWidget: (value, meta) => Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text('Test ${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 11), textAlign: TextAlign.center),
+                                ),
                               ),
                             ),
                           ),

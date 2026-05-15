@@ -29,24 +29,24 @@ class SettingsScreen extends StatelessWidget {
           Text('Uygulama', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
           SwitchListTile(
-            title: const Text('Karanl�k Mod'),
+            title: const Text('Karanlık Mod'),
             value: provider.isDarkMode,
             onChanged: (value) => provider.toggleThemeMode(value),
           ),
           const SizedBox(height: 24),
-          Text('Veri Y�netimi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Veri Yönetimi', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
           _ActionCard(
-            title: 'Hedef G�ncelle',
-            description: 'Mevcut net veya hedef netinizi g�ncelleyin.',
-            buttonLabel: 'G�ncelle',
+            title: 'Hedef Güncelle',
+            description: 'Mevcut net veya hedef netinizi güncelleyin.',
+            buttonLabel: 'Güncelle',
             onPressed: () => _showTargetDialog(context),
           ),
           const SizedBox(height: 16),
           _ActionCard(
-            title: 'Verileri S�f�rla',
-            description: 'T�m kay�tl� kullan�c� ve test verilerini siler.',
-            buttonLabel: 'S�f�rla',
+            title: 'Verileri Sıfırla',
+            description: 'Tüm kayıtlı kullanıcı ve test verilerini siler.',
+            buttonLabel: 'Sıfırla',
             onPressed: () => _confirmReset(context),
             buttonColor: Colors.red,
           ),
@@ -62,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hedef G�ncelle'),
+          title: const Text('Hedef Güncelle'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -96,7 +96,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (context) {
         return AlertDialog(
           title: const Text('Verileri Sil'),
-          content: const Text('Bu i�lem t�m verileri kal�c� olarak siler. Devam etmek istiyor musunuz?'),
+          content: const Text('Bu işlem tüm verileri kalıcı olarak siler. Devam etmek istiyor musunuz?'),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('�ptal')),
             TextButton(

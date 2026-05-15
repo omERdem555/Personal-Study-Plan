@@ -56,44 +56,47 @@ class AppProvider extends ChangeNotifier {
         .where((entry) => entry.value.reduce((a, b) => a + b) / entry.value.length < (_user?.targetNet ?? 0) * 0.8)
         .map((entry) => entry.key)
         .toList();
-    return weakSubjects.isEmpty ? ['Genel �al��ma temposunu koru'] : weakSubjects;
+    return weakSubjects.isEmpty ? ['Genel çalışma temposunu koru'] : weakSubjects;
   }
 
   String get dailyRecommendation {
     if (_user == null) {
-      return '�ncelikle hedef bilgilerinizi kaydedin.';
+      return 'Öncelikle hedef bilgilerinizi kaydedin.';
     }
     if (_testResults.isEmpty) {
-      return 'Bug�n bir test sonucu ekleyin, AI size en iyi plan� sunsun.';
+      return 'Bugün bir test sonucu ekleyin, AI size en iyi planı sunsun.';
     }
-    if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel �al��ma temposunu koru') {
-      return '�ncelikli olarak ${weakSubjects.take(2).join(', ')} konular�na odaklan�n.';
+    final avgStudyTime = _testResults.isNotEmpty ? (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0) : '0';
+    if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel çalışma temposunu koru') {
+      return 'Öncelikli olarak ${weakSubjects.take(2).join(', ')} konularına (ortalama $avgStudyTime dk) odaklanın.';
     }
     if (completionRate < 0.7) {
-      return 'Haftal�k �al��ma s�renizi art�rarak hedefe yak�nla��n.';
+      return 'Haftalık çalışma sürenizi arttırarak (şu anda $avgStudyTime dk) hedefe yaklaşın.';
     }
-    return 'Harika ilerliyorsunuz. Plan�n�za sad�k kal�n ve performans�n�z� takip edin.';
+    return 'Harika ilerliyorsunuz. Mevcut çalışma süresi ($avgStudyTime dk) ile planınıza sadık kalın.';
   }
 
   String get planSummary {
     if (_user == null) {
-      return 'Hedeflerinizi kaydedin ve AI plan�n�z� olu�turun.';
+      return 'Hedeflerinizi kaydedin ve AI planınızı oluşturun.';
     }
     if (_testResults.isEmpty) {
-      return 'Test giri�i olmadan AI plan� ki�iselle�tirmek zor. �nce bir test girin.';
+      return 'Test giriş olmadan AI planı kişiselleştirmek zor. Önce bir test girin.';
     }
-    return 'Zay�f konular�n�za daha fazla zaman ay�rarak hedef netinize ula�abilecek bir plan olu�turduk.';
+    final avgStudyTime = (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0);
+    return 'Zayıf konularınıza daha fazla zaman ($avgStudyTime dk) ayırarak hedef netinize ulaşabilecek bir plan oluşturduk.';
   }
 
   List<String> get recommendations {
     final list = <String>[];
     if (_user != null) {
-      list.add('G�nl�k ${targetGap.toStringAsFixed(1)} net fark�n� kapatmaya odaklan�n.');
+      list.add('Günlük ${targetGap.toStringAsFixed(1)} net farkını kapatmaya odaklanın.');
     }
-    if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel �al��ma temposunu koru') {
-      list.add('�ncelikle ${weakSubjects.take(2).join(' ve ')} konular�n� g��lendirin.');
+    final avgStudyTime = _testResults.isNotEmpty ? (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0) : '60';
+    if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel çalışma temposunu koru') {
+      list.add('Öncelikle ${weakSubjects.take(2).join(' ve ')} konularına günde en az $avgStudyTime dakika ayırın.');
     }
-    list.add('Her test sonras� hata analizi yaparak konular� peki�tirin.');
+    list.add('Her test sonrası hata analizi yaparak konuları pekiştirin.');
     return list;
   }
 

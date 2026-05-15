@@ -49,7 +49,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kaydetme hatas�: $error')),
+          SnackBar(content: Text('Kaydetme hatası: $error')),
         );
       }
     } finally {
@@ -67,10 +67,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Ho� Geldiniz!', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
+                Text('Hoş Geldiniz!', style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 Text(
-                  'Akademik hedeflerinizi daha ak�ll�ca belirleyin ve AI destekli planlar�n�z� olu�turun.',
+                  'Akademik hedeflerinizi daha akıllıca belirleyin ve AI destekli planlarınızı oluşturun.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700]),
                 ),
                 const SizedBox(height: 32),
@@ -80,8 +80,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     children: [
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(labelText: 'Ad�n�z'),
-                        validator: (value) => (value?.isEmpty ?? true) ? 'Ad�n�z� girin' : null,
+                        decoration: const InputDecoration(labelText: 'Adınız'),
+                        validator: (value) => (value?.isEmpty ?? true) ? 'Adınızı girin' : null,
                       ),
                       const SizedBox(height: 18),
                       TextFormField(
@@ -96,7 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value?.isEmpty ?? true) return 'Mevcut net girin';
-                          return double.tryParse(value!) == null ? 'Ge�erli bir say� girin' : null;
+                          return double.tryParse(value!) == null ? 'Geçerli bir sayı girin' : null;
                         },
                       ),
                       const SizedBox(height: 18),
@@ -106,11 +106,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value?.isEmpty ?? true) return 'Hedef net girin';
-                          return double.tryParse(value!) == null ? 'Ge�erli bir say� girin' : null;
+                          return double.tryParse(value!) == null ? 'Geçerli bir sayı girin' : null;
                         },
                       ),
                       const SizedBox(height: 32),
-                      PrimaryButton(label: 'Ba�la', onTap: _onSubmit, isLoading: _isLoading),
+                      PrimaryButton(label: 'Başla', onTap: _onSubmit, isLoading: _isLoading),
                     ],
                   ),
                 ),
