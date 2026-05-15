@@ -197,7 +197,7 @@ class HomeDashboard extends StatelessWidget {
                       child: Icon(Icons.auto_graph, color: Theme.of(context).colorScheme.primary),
                     ),
                     title: Text(result.subject, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    subtitle: Text('${AppDateUtils.formatDate(result.date)} • Net ${result.predictedNet.toStringAsFixed(1)}'),
+                    subtitle: Text('${AppDateUtils.formatDate(result.date)} • Net ${result.actualNet.toStringAsFixed(1)}'),
                     trailing: Text('${result.correct}/${result.totalQuestions}'),
                   ),
                 ),

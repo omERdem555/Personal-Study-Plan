@@ -23,18 +23,20 @@ class AppProvider extends ChangeNotifier {
   int get totalTests => _testResults.length;
 
   double get averageNet {
-    if (_testResults.isEmpty) return 0.0;
-    return _testResults.map((item) => item.predictedNet).reduce((a, b) => a + b) / _testResults.length;
+    if (_testResults.isEmpty) return _user?.currentNet ?? 0.0;
+    return _testResults.map((item) => item.actualNet).reduce((a, b) => a + b) / _testResults.length;
   }
 
   double get targetGap {
     if (_user == null) return 0.0;
-    return (_user!.targetNet - _user!.currentNet).clamp(0.0, double.infinity);
+    final current = _testResults.isEmpty ? _user!.currentNet : averageNet;
+    return (_user!.targetNet - current).clamp(0.0, double.infinity);
   }
 
   double get completionRate {
     if (_user == null || _user!.targetNet == 0) return 0.0;
-    return (_user!.currentNet / _user!.targetNet).clamp(0.0, 1.0);
+    final current = _testResults.isEmpty ? _user!.currentNet : averageNet;
+    return (current / _user!.targetNet).clamp(0.0, 1.0);
   }
 
   TestResult? get latestResult {
@@ -50,7 +52,7 @@ class AppProvider extends ChangeNotifier {
   List<String> get weakSubjects {
     final subjectMap = <String, List<double>>{};
     for (final result in _testResults) {
-      subjectMap.putIfAbsent(result.subject, () => []).add(result.predictedNet);
+      subjectMap.putIfAbsent(result.subject, () => []).add(result.actualNet);
     }
     final weakSubjects = subjectMap.entries
         .where((entry) => entry.value.reduce((a, b) => a + b) / entry.value.length < (_user?.targetNet ?? 0) * 0.8)
@@ -67,18 +69,23 @@ class AppProvider extends ChangeNotifier {
       return 'Bugün bir test sonucu ekleyin, AI size en iyi planı sunsun.';
     }
     final avgStudyTime = _testResults.isNotEmpty ? (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0) : '0';
+    final completedRate = (completionRate * 100).toStringAsFixed(0);
     if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel çalışma temposunu koru') {
-      return 'Öncelikli olarak ${weakSubjects.take(2).join(', ')} konularına (ortalama $avgStudyTime dk) odaklanın.';
+      return 'Öncelikli olarak ${weakSubjects.take(2).join(', ')} konularına (ortalama $avgStudyTime dk) odaklanın. Şu anda hedefin %$completedRate tamamlandı.';
     }
     if (completionRate < 0.7) {
-      return 'Haftalık çalışma sürenizi arttırarak (şu anda $avgStudyTime dk) hedefe yaklaşın.';
+      return 'Haftalık çalışma sürenizi artırarak hedefinize yaklaşın. Ortalama $avgStudyTime dk çalışıyorsunuz.';
     }
-    return 'Harika ilerliyorsunuz. Mevcut çalışma süresi ($avgStudyTime dk) ile planınıza sadık kalın.';
+    return 'Harika ilerliyorsunuz. Mevcut çalışma süreniz ($avgStudyTime dk) ile hedefe yaklaşıyorsunuz.';
   }
 
   String get planSummary {
     if (_user == null) {
       return 'Hedeflerinizi kaydedin ve AI planınızı oluşturun.';
+    }
+    if (_studyPlans.isNotEmpty) {
+      final plan = _studyPlans.last;
+      return 'Son planınız ${plan.subject} için ${plan.studyTime} dk çalışma ve ${plan.predictedNet.toStringAsFixed(1)} net tahmini sunuyor. Bu plan güncel test verilerinizden hesaplandı.';
     }
     if (_testResults.isEmpty) {
       return 'Test giriş olmadan AI planı kişiselleştirmek zor. Önce bir test girin.';
@@ -101,7 +108,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   List<TestResult> get recentResults => _testResults.reversed.toList();
-  List<double> get netTrend => _testResults.map((result) => result.predictedNet).toList();
+  List<double> get netTrend => _testResults.map((result) => result.actualNet).toList();
   List<int> get studyTimeTrend => _testResults.map((result) => result.studyTime).toList();
 
   static Future<void> initializeStorage() async {

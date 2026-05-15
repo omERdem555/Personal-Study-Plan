@@ -18,7 +18,7 @@ class AiAnalysisScreen extends StatelessWidget {
     // Calculate statistics
     final totalTests = testResults.length;
     final averageNet = totalTests > 0
-        ? testResults.map((r) => r.predictedNet).reduce((a, b) => a + b) / totalTests
+        ? testResults.map((r) => r.actualNet).reduce((a, b) => a + b) / totalTests
         : 0.0;
     final averageAccuracy = totalTests > 0
         ? testResults.map((r) => MathUtils.calculateAccuracy(r.correct, r.totalQuestions)).reduce((a, b) => a + b) / totalTests
@@ -30,7 +30,7 @@ class AiAnalysisScreen extends StatelessWidget {
       if (!subjectStats.containsKey(result.subject)) {
         subjectStats[result.subject] = [];
       }
-      subjectStats[result.subject]!.add(result.predictedNet);
+      subjectStats[result.subject]!.add(result.actualNet);
     }
 
     final subjectAverages = subjectStats.map((subject, nets) {

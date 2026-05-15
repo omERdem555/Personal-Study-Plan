@@ -27,9 +27,9 @@ class AnalysisScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
                 const SizedBox(height: 18),
-                Text('Hen�z test verisi yok', style: Theme.of(context).textTheme.headlineSmall),
+                Text('Henüz test verisi yok', style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
-                Text('�lk testinizi girerek performans analizinizi g�r�n.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[600])),
+                Text('İlk testinizi girerek performans analizinizi görün.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[600])),
               ],
             ),
           ),
@@ -56,7 +56,7 @@ class AnalysisScreen extends StatelessWidget {
             children: [
               Expanded(child: StatChip(label: 'Ortalama Net', value: provider.averageNet.toStringAsFixed(1), color: Colors.indigo)),
               const SizedBox(width: 12),
-              Expanded(child: StatChip(label: 'Hedef A����', value: provider.targetGap.toStringAsFixed(1), color: Colors.red)),
+              Expanded(child: StatChip(label: 'Hedef Açığı', value: provider.targetGap.toStringAsFixed(1), color: Colors.red)),
             ],
           ),
           const SizedBox(height: 16),
@@ -68,7 +68,7 @@ class AnalysisScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          Text('Net E�risi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Net Eğrisi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 14),
           Card(
             elevation: 2,
@@ -123,7 +123,7 @@ class AnalysisScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Zay�f Dersler', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('Zayıf Dersler', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
@@ -131,7 +131,7 @@ class AnalysisScreen extends StatelessWidget {
             children: provider.weakSubjects.map((subject) => Chip(label: Text(subject))).toList(),
           ),
           const SizedBox(height: 24),
-          Text('AI ��g�r�s�', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          Text('AI Önerisi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           Text(
             provider.dailyRecommendation,

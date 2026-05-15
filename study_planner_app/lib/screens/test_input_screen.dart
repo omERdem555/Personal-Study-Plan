@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/test_result.dart';
 import '../providers/app_provider.dart';
 import '../services/api_service.dart';
+import '../utils/helpers.dart';
 import '../widgets/primary_button.dart';
 
 class TestInputScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _TestInputScreenState extends State<TestInputScreen> {
 
   bool _isLoading = false;
   double? _predictedNet;
+  double? _actualNet;
 
   @override
   void dispose() {
@@ -44,18 +46,25 @@ class _TestInputScreenState extends State<TestInputScreen> {
       final user = context.read<AppProvider>().user;
       if (user == null) return;
 
+      final correct = int.parse(_correctController.text);
+      final wrong = int.parse(_wrongController.text);
+      final actualNet = MathUtils.calculateNet(correct, wrong);
+
       final result = await ApiService.getPrediction(
         subject: _subjectController.text.trim(),
         totalQuestions: int.parse(_totalQuestionsController.text),
-        correct: int.parse(_correctController.text),
-        wrong: int.parse(_wrongController.text),
+        correct: correct,
+        wrong: wrong,
         timeSpent: int.parse(_studyTimeController.text),
         difficulty: double.parse(_difficultyController.text),
         currentNet: user.currentNet,
         targetNet: user.targetNet,
       );
 
-      setState(() => _predictedNet = (result['predicted_net'] as num).toDouble());
+      setState(() {
+        _predictedNet = (result['predicted_net'] as num).toDouble();
+        _actualNet = actualNet;
+      });
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Analiz hatası: $error')));
@@ -98,7 +107,10 @@ class _TestInputScreenState extends State<TestInputScreen> {
     _studyTimeController.clear();
     _difficultyController.text = '1.0';
     _weaknessController.clear();
-    setState(() => _predictedNet = null);
+    setState(() {
+      _predictedNet = null;
+      _actualNet = null;
+    });
   }
 
   @override
@@ -153,15 +165,15 @@ class _TestInputScreenState extends State<TestInputScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Tahmin Edilen Net', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-                                Text(_predictedNet!.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+                                Text('Gerçek Net', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                                Text(_actualNet!.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Text('Çalışma Süresi', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-                                Text('${_studyTimeController.text} dk', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.bold)),
+                                Text('Tahmini Net', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
+                                Text(_predictedNet!.toStringAsFixed(1), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Theme.of(context).colorScheme.secondary, fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],

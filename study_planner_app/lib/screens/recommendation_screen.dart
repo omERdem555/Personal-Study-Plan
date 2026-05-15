@@ -108,12 +108,19 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                         _PlanDetailRow(label: 'Önerilen Ders', value: _planResult!['subject'] ?? user.targetSubject),
                         _PlanDetailRow(label: 'Çalışma Süresi', value: '${_planResult!['study_time']} dakika'),
                         _PlanDetailRow(label: 'Tahmini Net', value: _planResult!['predicted_net']?.toStringAsFixed(1) ?? '--'),
-                        _PlanDetailRow(label: 'Hedef Açığı', value: provider.targetGap.toStringAsFixed(1)),
+                        _PlanDetailRow(
+                          label: 'Hedef Açığı',
+                          value: _planResult != null
+                              ? ((user.targetNet - (_planResult!['predicted_net'] as num).toDouble()).clamp(0.0, double.infinity)).toStringAsFixed(1)
+                              : provider.targetGap.toStringAsFixed(1),
+                        ),
                         const SizedBox(height: 18),
                         Text('Plan Özeti', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 10),
                         Text(
-                          provider.planSummary,
+                          _planResult != null
+                              ? 'Bu plan ile ${_planResult!['subject'] ?? user.targetSubject} dersinde ${_planResult!['study_time']} dk çalışarak tahmini netinizi ${(_planResult!['predicted_net'] as num?)?.toStringAsFixed(1) ?? '--'} seviyesine çıkarabilirsiniz.'
+                              : provider.planSummary,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700], height: 1.4),
                         ),
                       ],

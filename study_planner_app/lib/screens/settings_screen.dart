@@ -71,7 +71,7 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('�ptal')),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('İptal')),
             TextButton(
               onPressed: () {
                 final provider = context.read<AppProvider>();
@@ -98,7 +98,7 @@ class SettingsScreen extends StatelessWidget {
           title: const Text('Verileri Sil'),
           content: const Text('Bu işlem tüm verileri kalıcı olarak siler. Devam etmek istiyor musunuz?'),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('�ptal')),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('İptal')),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop();

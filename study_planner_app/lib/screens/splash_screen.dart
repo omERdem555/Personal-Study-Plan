@@ -56,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                'AI Destekli �al��ma Plan�',
+                'AI Destekli Çalışma Planı',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Performans�n�z� analiz eden ve g�nl�k �al��ma plan� olu�turan bir yard�mc�.',
+                'Performansınızı analiz eden ve günlük çalışma planı oluşturan bir yardımcı.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
                 textAlign: TextAlign.center,
               ),

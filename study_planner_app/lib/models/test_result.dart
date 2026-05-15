@@ -1,3 +1,5 @@
+import '../utils/helpers.dart';
+
 class TestResult {
   final String subject;
   final int totalQuestions;
@@ -56,4 +58,6 @@ class TestResult {
       date: DateTime.parse(json['date']),
     );
   }
+
+  double get actualNet => MathUtils.calculateNet(correct, wrong);
 }
