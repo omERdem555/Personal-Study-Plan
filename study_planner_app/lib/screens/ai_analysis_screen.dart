@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../screens/settings_screen.dart';
 import '../utils/helpers.dart';
 
 class AiAnalysisScreen extends StatelessWidget {
@@ -41,6 +42,12 @@ class AiAnalysisScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Analiz'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
       ),
       body: testResults.isEmpty
           ? const Center(

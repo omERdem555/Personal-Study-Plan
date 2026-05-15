@@ -42,6 +42,16 @@ flutter run -d web-server --web-port 8080
 
 Then open the browser URL shown by Flutter (typically `http://localhost:8080`).
 
+> Not: `0.0.0.0` is a bind address used by the server, not a browser URL. In your browser use `http://localhost:8080` or the exact URL Flutter prints.
+>
+> If Flutter build fails because of path encoding or Turkish characters in the project path, move the project to a shorter path with only ASCII characters and retry. As a workaround, you can also create an ASCII-only junction path such as:
+>
+> ```powershell
+> New-Item -ItemType Junction -Path C:\StudyPlannerApp -Target "<your project path>"
+> cd C:\StudyPlannerApp
+> flutter run -d web-server --web-port 8080
+> ```
+>
 ### 3) Port çakışması olursa ne yapmalı?
 
 Eğer `uvicorn` veya `flutter run` komutları:

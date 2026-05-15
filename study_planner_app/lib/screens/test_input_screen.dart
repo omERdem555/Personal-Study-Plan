@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/test_result.dart';
 import '../providers/app_provider.dart';
 import '../services/api_service.dart';
+import '../screens/settings_screen.dart';
 import '../utils/helpers.dart';
 import '../widgets/primary_button.dart';
 
@@ -116,7 +117,15 @@ class _TestInputScreenState extends State<TestInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Test Giriş')),
+      appBar: AppBar(
+        title: const Text('Test Giriş'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Form(

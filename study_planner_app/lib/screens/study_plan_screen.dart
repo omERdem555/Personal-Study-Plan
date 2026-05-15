@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/study_plan.dart';
 import '../providers/app_provider.dart';
+import '../screens/settings_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_button.dart';
 import '../utils/helpers.dart';
@@ -37,12 +38,13 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
       final user = context.read<AppProvider>().user;
       if (user == null) return;
 
+      final recent = context.read<AppProvider>().latestResult;
       final result = await ApiService.getPlan(
-        subject: user.targetSubject,
-        totalQuestions: 40, // Default value
-        correct: 25, // Default value
-        wrong: 15, // Default value
-        currentNet: user.currentNet,
+        subject: recent?.subject ?? user.targetSubject,
+        totalQuestions: recent?.totalQuestions ?? 40,
+        correct: recent?.correct ?? 25,
+        wrong: recent?.wrong ?? 15,
+        currentNet: recent?.actualNet ?? user.currentNet,
         targetNet: user.targetNet,
       );
 
@@ -79,6 +81,12 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Çalışma Planı'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
       ),
       body: _currentPlan == null
           ? Center(

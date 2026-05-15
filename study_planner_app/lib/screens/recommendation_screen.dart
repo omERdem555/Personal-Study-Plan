@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/study_plan.dart';
 import '../providers/app_provider.dart';
+import '../screens/settings_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/primary_button.dart';
 
@@ -15,6 +17,24 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   bool _isLoading = false;
   Map<String, dynamic>? _planResult;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<AppProvider>();
+      final latest = provider.latestPlan;
+      if (latest != null) {
+        setState(() {
+          _planResult = {
+            'subject': latest.subject,
+            'study_time': latest.studyTime,
+            'predicted_net': latest.predictedNet,
+          };
+        });
+      }
+    });
+  }
+
   Future<void> _loadPlan() async {
     final provider = context.read<AppProvider>();
     final user = provider.user;
@@ -28,11 +48,21 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         totalQuestions: recent?.totalQuestions ?? 40,
         correct: recent?.correct ?? 24,
         wrong: recent?.wrong ?? 16,
-        currentNet: user.currentNet,
+        currentNet: provider.averageNet,
         targetNet: user.targetNet,
       );
 
       setState(() => _planResult = response);
+      if (response.containsKey('subject') && response.containsKey('study_time') && response.containsKey('predicted_net')) {
+        await provider.addStudyPlan(
+          StudyPlan(
+            subject: response['subject'] as String,
+            studyTime: response['study_time'] as int,
+            predictedNet: (response['predicted_net'] as num).toDouble(),
+            date: DateTime.now(),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,6 +86,12 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Tavsiye Planı'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),

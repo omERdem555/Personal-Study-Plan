@@ -186,7 +186,7 @@ class HomeDashboard extends StatelessWidget {
                 ),
               )
             else
-              ...recentTests.take(3).map(
+              ...recentTests.map(
                 (result) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: ListTile(

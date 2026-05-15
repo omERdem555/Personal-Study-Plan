@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import 'settings_screen.dart';
 
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
@@ -19,7 +20,15 @@ class ReportsScreen extends StatelessWidget {
     final studyTimeTrend = provider.studyTimeTrend;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Raporlar ve İstatistikler')),
+      appBar: AppBar(
+        title: const Text('Raporlar ve İstatistikler'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         children: [
@@ -128,23 +137,28 @@ class ReportsScreen extends StatelessWidget {
                           gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withAlpha((0.12 * 255).round()), strokeWidth: 1)),
                           borderData: FlBorderData(show: false),
                           titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 50,
-                                interval: (studyTimeTrend.reduce((a, b) => a > b ? a : b) / 5).ceil().toDouble(),
-                              ),
-                            ),
+                            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
                                 reservedSize: 35,
-                                interval: (studyTimeTrend.length / 5).ceil().toDouble(),
+                                interval: 1,
                                 getTitlesWidget: (value, meta) => Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text('Test ${value.toInt() + 1}', style: const TextStyle(color: Colors.grey, fontSize: 11), textAlign: TextAlign.center),
                                 ),
                               ),
+                            ),
+                          ),
+                          barTouchData: BarTouchData(
+                            enabled: true,
+                            touchTooltipData: BarTouchTooltipData(
+                              getTooltipColor: (group) => Theme.of(context).colorScheme.primary,
+                              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                                return BarTooltipItem('${rod.toY.toInt()} dk', const TextStyle(color: Colors.white, fontWeight: FontWeight.bold));
+                              },
                             ),
                           ),
                           maxY: studyTimeTrend.reduce((a, b) => a > b ? a : b).toDouble() + 10,
