@@ -21,9 +21,7 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 18),
           if (user != null) ...[
             _SettingTile(label: 'Ad', value: user.name),
-            _SettingTile(label: 'Hedef Ders', value: user.targetSubject),
-            _SettingTile(label: 'Mevcut Net', value: user.currentNet.toStringAsFixed(1)),
-            _SettingTile(label: 'Hedef Net', value: user.targetNet.toStringAsFixed(1)),
+            _SettingTile(label: 'Eklenecek Ders Sayısı', value: '${provider.totalSubjects}'),
           ],
           const SizedBox(height: 24),
           Text('Uygulama', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),

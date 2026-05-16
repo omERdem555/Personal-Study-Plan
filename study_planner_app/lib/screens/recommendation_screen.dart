@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/study_plan.dart';
+import '../models/subject_goal.dart';
 import '../providers/app_provider.dart';
 import '../screens/settings_screen.dart';
 import '../services/api_service.dart';
@@ -16,47 +17,38 @@ class RecommendationScreen extends StatefulWidget {
 class _RecommendationScreenState extends State<RecommendationScreen> {
   bool _isLoading = false;
   Map<String, dynamic>? _planResult;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<AppProvider>();
-      final latest = provider.latestPlan;
-      if (latest != null) {
-        setState(() {
-          _planResult = {
-            'subject': latest.subject,
-            'study_time': latest.studyTime,
-            'predicted_net': latest.predictedNet,
-          };
-        });
-      }
-    });
-  }
+  String? _selectedSubject;
 
   Future<void> _loadPlan() async {
+    if (!mounted) return;
     final provider = context.read<AppProvider>();
     final user = provider.user;
-    if (user == null) return;
+    if (user == null || provider.subjectGoals.isEmpty) return;
 
+    final subject = _selectedSubject ?? provider.subjectGoals.first.subject;
     setState(() => _isLoading = true);
+
     try {
       final recent = provider.latestResult;
+      final goal = provider.subjectGoals.firstWhere(
+        (goal) => goal.subject == subject,
+        orElse: () => SubjectGoal(subject: subject, currentNet: 0.0, targetNet: user.targetNet, createdAt: DateTime.now()),
+      );
+
       final response = await ApiService.getPlan(
-        subject: recent?.subject ?? user.targetSubject,
+        subject: subject,
         totalQuestions: recent?.totalQuestions ?? 40,
         correct: recent?.correct ?? 24,
         wrong: recent?.wrong ?? 16,
         currentNet: provider.averageNet,
-        targetNet: user.targetNet,
+        targetNet: goal.targetNet,
       );
 
-      setState(() => _planResult = response);
-      if (response.containsKey('subject') && response.containsKey('study_time') && response.containsKey('predicted_net')) {
+      setState(() => _planResult = {...response, 'subject': subject});
+      if (response.containsKey('study_time') && response.containsKey('predicted_net')) {
         await provider.addStudyPlan(
           StudyPlan(
-            subject: response['subject'] as String,
+            subject: subject,
             studyTime: response['study_time'] as int,
             predictedNet: (response['predicted_net'] as num).toDouble(),
             date: DateTime.now(),
@@ -70,7 +62,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -78,6 +70,17 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<AppProvider>();
     final user = provider.user;
+    final selectedSubject = _selectedSubject ?? (provider.subjectGoals.isNotEmpty ? provider.subjectGoals.first.subject : '');
+    final latestSubjectPlan = provider.latestPlanForSubject(selectedSubject);
+    final planAvailable = _planResult != null || latestSubjectPlan != null;
+    final displayedPlan = _planResult != null
+        ? StudyPlan(
+            subject: _planResult!['subject'] as String,
+            studyTime: _planResult!['study_time'] as int,
+            predictedNet: (_planResult!['predicted_net'] as num).toDouble(),
+            date: DateTime.now(),
+          )
+        : latestSubjectPlan;
 
     if (user == null) {
       return const Center(child: CircularProgressIndicator());
@@ -96,6 +99,21 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         children: [
+          if (provider.subjectGoals.isNotEmpty) ...[
+            Text('Plan Oluşturmak için ders seçin', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: selectedSubject.isNotEmpty ? selectedSubject : null,
+              items: provider.subjectGoals.map((goal) => DropdownMenuItem(value: goal.subject, child: Text(goal.subject))).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedSubject = value;
+                });
+              },
+              decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'Ders Seçiniz'),
+            ),
+            const SizedBox(height: 20),
+          ],
           Text(
             'Kişisel Çalışma Planı',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -106,7 +124,26 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700]),
           ),
           const SizedBox(height: 20),
-          if (_planResult == null)
+          if (provider.subjectGoals.isEmpty)
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Ders yok', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Ana Sayfa üzerinden yeni dersler ekleyin. Her ders için özel plan oluşturabilirsiniz.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (!planAvailable)
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -118,7 +155,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     Text('Plan hazır değil', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                     const SizedBox(height: 10),
                     Text(
-                      'Önce son test verilerinizi kullanarak plan oluşturun. Bu öneri size hedef netinize ulaşmanız için yön gösterir.',
+                      'Plan oluşturmak için bir ders seçin ve "Plan Oluştur" butonuna dokunun.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                     ),
                     const SizedBox(height: 16),
@@ -141,22 +178,19 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                       children: [
                         Text('AI Planı', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 16),
-                        _PlanDetailRow(label: 'Önerilen Ders', value: _planResult!['subject'] ?? user.targetSubject),
-                        _PlanDetailRow(label: 'Çalışma Süresi', value: '${_planResult!['study_time']} dakika'),
-                        _PlanDetailRow(label: 'Tahmini Net', value: _planResult!['predicted_net']?.toStringAsFixed(1) ?? '--'),
+                        _PlanDetailRow(label: 'Önerilen Ders', value: displayedPlan?.subject ?? selectedSubject),
+                        _PlanDetailRow(label: 'Çalışma Süresi', value: '${displayedPlan?.studyTime ?? 0} dakika'),
+                        _PlanDetailRow(label: 'Tahmini Net', value: displayedPlan?.predictedNet.toStringAsFixed(1) ?? '--'),
+                        _PlanDetailRow(label: 'Mevcut Net', value: provider.subjectGoals.firstWhere((goal) => goal.subject == selectedSubject, orElse: () => SubjectGoal(subject: selectedSubject, currentNet: 0.0, targetNet: user.targetNet, createdAt: DateTime.now())).currentNet.toStringAsFixed(1)),
                         _PlanDetailRow(
                           label: 'Hedef Açığı',
-                          value: _planResult != null
-                              ? ((user.targetNet - (_planResult!['predicted_net'] as num).toDouble()).clamp(0.0, double.infinity)).toStringAsFixed(1)
-                              : provider.targetGap.toStringAsFixed(1),
+                          value: ((provider.subjectGoals.firstWhere((goal) => goal.subject == selectedSubject, orElse: () => SubjectGoal(subject: selectedSubject, currentNet: 0.0, targetNet: user.targetNet, createdAt: DateTime.now())).targetNet - (displayedPlan?.predictedNet ?? 0.0)).clamp(0.0, double.infinity)).toStringAsFixed(1),
                         ),
                         const SizedBox(height: 18),
                         Text('Plan Özeti', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                         const SizedBox(height: 10),
                         Text(
-                          _planResult != null
-                              ? 'Bu plan ile ${_planResult!['subject'] ?? user.targetSubject} dersinde ${_planResult!['study_time']} dk çalışarak tahmini netinizi ${(_planResult!['predicted_net'] as num?)?.toStringAsFixed(1) ?? '--'} seviyesine çıkarabilirsiniz.'
-                              : provider.planSummary,
+                          'Bu plan, seçili dersiniz için önerildi. ${displayedPlan?.studyTime ?? 0} dk çalışarak tahmini netinizi ${displayedPlan?.predictedNet.toStringAsFixed(1) ?? '--'} seviyesine taşımayı hedefleyin.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700], height: 1.4),
                         ),
                       ],
@@ -166,7 +200,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                 const SizedBox(height: 20),
                 Text('Öncelikli Adımlar', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
-                ...provider.recommendations.map((recommendation) => _RecommendationCard(text: recommendation)).toList(),
+                ...provider.planSteps.map((recommendation) => _RecommendationCard(text: recommendation)),
                 const SizedBox(height: 24),
                 PrimaryButton(label: 'Yeniden Hesapla', onTap: _loadPlan, isLoading: _isLoading),
               ],

@@ -15,17 +15,11 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _subjectController = TextEditingController();
-  final _currentNetController = TextEditingController();
-  final _targetNetController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _subjectController.dispose();
-    _currentNetController.dispose();
-    _targetNetController.dispose();
     super.dispose();
   }
 
@@ -36,9 +30,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     try {
       final user = User(
         name: _nameController.text.trim(),
-        targetSubject: _subjectController.text.trim(),
-        currentNet: double.parse(_currentNetController.text),
-        targetNet: double.parse(_targetNetController.text),
+        targetSubject: 'Genel',
+        currentNet: 0.0,
+        targetNet: 50.0,
         createdAt: DateTime.now(),
       );
       await context.read<AppProvider>().saveUser(user);
@@ -83,31 +77,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         decoration: const InputDecoration(labelText: 'Adınız'),
                         validator: (value) => (value?.isEmpty ?? true) ? 'Adınızı girin' : null,
                       ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        controller: _subjectController,
-                        decoration: const InputDecoration(labelText: 'Hedef Ders'),
-                        validator: (value) => (value?.isEmpty ?? true) ? 'Hedef dersi girin' : null,
-                      ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        controller: _currentNetController,
-                        decoration: const InputDecoration(labelText: 'Mevcut Netiniz'),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Mevcut net girin';
-                          return double.tryParse(value!) == null ? 'Geçerli bir sayı girin' : null;
-                        },
-                      ),
-                      const SizedBox(height: 18),
-                      TextFormField(
-                        controller: _targetNetController,
-                        decoration: const InputDecoration(labelText: 'Hedef Netiniz'),
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) return 'Hedef net girin';
-                          return double.tryParse(value!) == null ? 'Geçerli bir sayı girin' : null;
-                        },
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sadece adınızı girin. Hedef derslerinizi Ana Sayfa üzerinden ekleyebilirsiniz.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 32),
                       PrimaryButton(label: 'Başla', onTap: _onSubmit, isLoading: _isLoading),

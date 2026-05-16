@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/test_result.dart';
 import '../models/study_plan.dart';
+import '../models/subject_goal.dart';
 import '../storage/local_storage_service.dart';
 
 class AppProvider extends ChangeNotifier {
   User? _user;
   List<TestResult> _testResults = [];
   List<StudyPlan> _studyPlans = [];
+  List<SubjectGoal> _subjectGoals = [];
   bool _isReady = false;
   bool _isDarkMode = false;
 
@@ -21,10 +23,94 @@ class AppProvider extends ChangeNotifier {
   ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
   int get totalTests => _testResults.length;
+  int get totalSubjects => _subjectGoals.length;
+  List<SubjectGoal> get subjectGoals => List.unmodifiable(_subjectGoals);
 
   double get averageNet {
     if (_testResults.isEmpty) return _user?.currentNet ?? 0.0;
     return _testResults.map((item) => item.actualNet).reduce((a, b) => a + b) / _testResults.length;
+  }
+
+  double get averageStudyTime {
+    if (_testResults.isEmpty) return 90.0;
+    return _testResults.map((item) => item.studyTime).reduce((a, b) => a + b) / _testResults.length;
+  }
+
+  double get recommendedStudyTime {
+    if (latestPlan != null) return latestPlan!.studyTime.toDouble();
+    return averageStudyTime;
+  }
+
+  double subjectAverageNet(String subject) {
+    final results = _testResults.where((result) => result.subject == subject).toList();
+    if (results.isEmpty) return 0.0;
+    return results.map((item) => item.actualNet).reduce((a, b) => a + b) / results.length;
+  }
+
+  int subjectTestCount(String subject) {
+    return _testResults.where((result) => result.subject == subject).length;
+  }
+
+  double subjectRecommendedStudyTime(String subject) {
+    final plan = latestPlan;
+    if (plan != null && plan.subject == subject) {
+      return plan.studyTime.toDouble();
+    }
+    return averageStudyTime;
+  }
+
+  String subjectWeakness(String subject) {
+    if (subject == 'Tümü') {
+      return 'Genel eksiklerinizi düzenli test ve konu tekrarlarıyla kapatın.';
+    }
+    final matchedResults = _testResults.where((result) => result.subject == subject).toList();
+    if (matchedResults.isEmpty) {
+      return 'Bu ders için henüz yeterli veri yok. Yeni test ekleyin.';
+    }
+    final latest = matchedResults.last;
+    if (latest.topicWeakness.isNotEmpty) {
+      return 'Özellikle ${latest.topicWeakness} konusuna çalışın.';
+    }
+    final goal = _subjectGoals.firstWhere((item) => item.subject == subject, orElse: () => SubjectGoal(subject: subject, currentNet: 0.0, targetNet: _user?.targetNet ?? 50.0, createdAt: DateTime.now()));
+    final avg = subjectAverageNet(subject);
+    if (avg < goal.targetNet * 0.8) {
+      return '$subject için temel konulara yeniden çalışma önerilir.';
+    }
+    return '$subject konularında düzenli tekrar ve test çözümü sürdürün.';
+  }
+
+  String subjectRecommendation(String subject) {
+    if (subject == 'Tümü' || subject.isEmpty) {
+      return dailyRecommendation;
+    }
+    final results = _testResults.where((result) => result.subject == subject).toList();
+    if (results.isEmpty) {
+      return 'Bu ders için veri yok. Yeni bir test girerek konu analizini güçlendirin.';
+    }
+    final avgNet = subjectAverageNet(subject);
+    final avgTime = results.map((item) => item.studyTime).reduce((a, b) => a + b) / results.length;
+    final goal = _subjectGoals.firstWhere((item) => item.subject == subject, orElse: () => SubjectGoal(subject: subject, currentNet: 0.0, targetNet: _user?.targetNet ?? avgNet, createdAt: DateTime.now()));
+    final gap = (goal.targetNet - avgNet).clamp(0.0, double.infinity);
+    if (gap > 0) {
+      return '$subject için ortalama netiniz ${avgNet.toStringAsFixed(1)}. Günlük ${avgTime.toStringAsFixed(0)} dk çalışarak hedefe yaklaşın. Kalan net farkı ${gap.toStringAsFixed(1)}.';
+    }
+    return '$subject için performansınız güçlü. Yeni testlerle kalıcılığı artırın.';
+  }
+
+  List<String> get planSteps {
+    if (latestPlan == null) {
+      return [
+        'Öncelikle hedef derslerinizi ekleyin.',
+        'Yeni test sonuçları ekleyin ve plan oluşturun.',
+        'Sonuçları kaydedip planınızı düzenli olarak güncelleyin.',
+      ];
+    }
+    final plan = latestPlan!;
+    return [
+      'Öncelikli ders: ${plan.subject}. Bu konuya ${plan.studyTime} dk ayırın.',
+      'Her çalışma oturumunda ilgili dersin zayıf konularını tekrar edin.',
+      'Test sonuçlarını kaydedip planı haftalık olarak güncelleyin.',
+    ];
   }
 
   double get targetGap {
@@ -49,13 +135,23 @@ class AppProvider extends ChangeNotifier {
     return _studyPlans.last;
   }
 
+  StudyPlan? latestPlanForSubject(String subject) {
+    final matchingPlans = _studyPlans.where((plan) => plan.subject == subject).toList();
+    if (matchingPlans.isEmpty) return null;
+    return matchingPlans.last;
+  }
+
   List<String> get weakSubjects {
     final subjectMap = <String, List<double>>{};
     for (final result in _testResults) {
       subjectMap.putIfAbsent(result.subject, () => []).add(result.actualNet);
     }
     final weakSubjects = subjectMap.entries
-        .where((entry) => entry.value.reduce((a, b) => a + b) / entry.value.length < (_user?.targetNet ?? 0) * 0.8)
+        .where((entry) {
+          final avg = entry.value.reduce((a, b) => a + b) / entry.value.length;
+          final goal = _subjectGoals.firstWhere((item) => item.subject == entry.key, orElse: () => SubjectGoal(subject: entry.key, currentNet: 0.0, targetNet: _user?.targetNet ?? 50.0, createdAt: DateTime.now()));
+          return avg < goal.targetNet * 0.8;
+        })
         .map((entry) => entry.key)
         .toList();
     return weakSubjects.isEmpty ? ['Genel çalışma temposunu koru'] : weakSubjects;
@@ -65,11 +161,17 @@ class AppProvider extends ChangeNotifier {
     if (_user == null) {
       return 'Öncelikle hedef bilgilerinizi kaydedin.';
     }
+    if (_subjectGoals.isEmpty) {
+      return 'Derslerinizi ekleyin; her ders için özel öneri sunayım.';
+    }
     if (_testResults.isEmpty) {
       return 'Bugün bir test sonucu ekleyin, AI size en iyi planı sunsun.';
     }
-    final avgStudyTime = _testResults.isNotEmpty ? (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0) : '0';
+    final avgStudyTime = averageStudyTime.toStringAsFixed(0);
     final completedRate = (completionRate * 100).toStringAsFixed(0);
+    if (latestPlan != null) {
+      return 'Son planınız ${latestPlan!.subject} için günlük ${latestPlan!.studyTime} dk öneriyor. Hedefinize doğru ilerlemeye devam edin.';
+    }
     if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel çalışma temposunu koru') {
       return 'Öncelikli olarak ${weakSubjects.take(2).join(', ')} konularına (ortalama $avgStudyTime dk) odaklanın. Şu anda hedefin %$completedRate tamamlandı.';
     }
@@ -90,7 +192,7 @@ class AppProvider extends ChangeNotifier {
     if (_testResults.isEmpty) {
       return 'Test giriş olmadan AI planı kişiselleştirmek zor. Önce bir test girin.';
     }
-    final avgStudyTime = (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0);
+    final avgStudyTime = averageStudyTime.toStringAsFixed(0);
     return 'Zayıf konularınıza daha fazla zaman ($avgStudyTime dk) ayırarak hedef netinize ulaşabilecek bir plan oluşturduk.';
   }
 
@@ -99,9 +201,12 @@ class AppProvider extends ChangeNotifier {
     if (_user != null) {
       list.add('Günlük ${targetGap.toStringAsFixed(1)} net farkını kapatmaya odaklanın.');
     }
-    final avgStudyTime = _testResults.isNotEmpty ? (_testResults.map((r) => r.studyTime).reduce((a, b) => a + b) / _testResults.length).toStringAsFixed(0) : '60';
+    final avgStudyTime = averageStudyTime.toStringAsFixed(0);
     if (weakSubjects.isNotEmpty && weakSubjects.first != 'Genel çalışma temposunu koru') {
       list.add('Öncelikle ${weakSubjects.take(2).join(' ve ')} konularına günde en az $avgStudyTime dakika ayırın.');
+    }
+    if (latestPlan != null) {
+      list.add('Günlük ${latestPlan!.studyTime} dk çalışma ile planlı ilerleyin.');
     }
     list.add('Her test sonrası hata analizi yaparak konuları pekiştirin.');
     return list;
@@ -120,6 +225,7 @@ class AppProvider extends ChangeNotifier {
     _user = await LocalStorageService.getUser();
     _testResults = await LocalStorageService.getTestResults();
     _studyPlans = await LocalStorageService.getStudyPlans();
+    _subjectGoals = await LocalStorageService.getSubjectGoals();
     _isReady = true;
     notifyListeners();
   }
@@ -160,10 +266,28 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addSubjectGoal(SubjectGoal goal) async {
+    final index = _subjectGoals.indexWhere((item) => item.subject == goal.subject);
+    if (index >= 0) {
+      _subjectGoals[index] = goal;
+    } else {
+      _subjectGoals.add(goal);
+    }
+    await LocalStorageService.saveSubjectGoal(goal);
+    notifyListeners();
+  }
+
+  Future<void> removeSubjectGoal(String subject) async {
+    _subjectGoals.removeWhere((item) => item.subject == subject);
+    await LocalStorageService.deleteSubjectGoal(subject);
+    notifyListeners();
+  }
+
   Future<void> clearAllData() async {
     _user = null;
     _testResults.clear();
     _studyPlans.clear();
+    _subjectGoals.clear();
     await LocalStorageService.clearAllData();
     notifyListeners();
   }

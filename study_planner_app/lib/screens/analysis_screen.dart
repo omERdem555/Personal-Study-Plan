@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +27,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final subjectOptions = <String>{allSubjectsLabel, ...provider.testResults.map((result) => result.subject)}.toList();
+    final subjectOptions = <String>{
+      allSubjectsLabel,
+      ...provider.testResults.map((result) => result.subject),
+      ...provider.subjectGoals.map((goal) => goal.subject),
+    }.toList();
     subjectOptions.sort((a, b) {
       if (a == allSubjectsLabel) return -1;
       if (b == allSubjectsLabel) return 1;
@@ -67,9 +73,15 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     }
 
     final spots = filteredResults.asMap().entries.map((entry) => FlSpot(entry.key.toDouble(), entry.value.actualNet)).toList();
-    final minY = (filteredResults.map((r) => r.actualNet).reduce((a, b) => a < b ? a : b) - 5).clamp(0, double.infinity).toDouble();
-    final maxY = filteredResults.map((r) => r.actualNet).reduce((a, b) => a > b ? a : b).toDouble() + 5;
+    final values = filteredResults.map((r) => r.actualNet).toList();
+    final maxValue = values.reduce(max);
+    final minValue = values.reduce(min);
+    final chartRange = maxValue - minValue;
+    final interval = chartRange > 0 ? (chartRange / 5).ceilToDouble() : 1.0;
+    final minY = 0.0;
+    final maxY = maxValue + interval;
     final maxX = spots.length > 1 ? (spots.length - 1).toDouble() : 1.0;
+    final analysisAdvice = provider.subjectRecommendation(activeSubject);
 
     return Scaffold(
       appBar: AppBar(
@@ -156,7 +168,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                         sideTitles: SideTitles(
                           showTitles: true,
                           reservedSize: 40,
-                          interval: 5,
+                          interval: interval,
                           getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                         ),
                       ),
@@ -188,19 +200,28 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          Text('Seçili Ders İçin Öneri', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Text(
+            analysisAdvice,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700], height: 1.4),
+          ),
+          if (activeSubject != allSubjectsLabel) ...[
+            const SizedBox(height: 18),
+            Text('Zayıf Konu', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Text(
+              provider.subjectWeakness(activeSubject),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700], height: 1.4),
+            ),
+          ],
+          const SizedBox(height: 24),
           Text('Zayıf Dersler', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: provider.weakSubjects.map((subject) => Chip(label: Text(subject))).toList(),
-          ),
-          const SizedBox(height: 24),
-          Text('AI Önerisi', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          Text(
-            provider.dailyRecommendation,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700], height: 1.4),
           ),
         ],
       ),

@@ -3,11 +3,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user.dart';
 import '../models/test_result.dart';
 import '../models/study_plan.dart';
+import '../models/subject_goal.dart';
 
 class LocalStorageService {
   static const String userBox = 'user_data';
   static const String testBox = 'test_results';
   static const String planBox = 'study_plans';
+  static const String subjectBox = 'subject_goals';
 
   static bool _initialized = false;
 
@@ -17,6 +19,7 @@ class LocalStorageService {
     await Hive.openBox<dynamic>(userBox);
     await Hive.openBox<dynamic>(testBox);
     await Hive.openBox<dynamic>(planBox);
+    await Hive.openBox<dynamic>(subjectBox);
     _initialized = true;
   }
 
@@ -66,9 +69,27 @@ class LocalStorageService {
         .toList();
   }
 
+  static Future<void> saveSubjectGoal(SubjectGoal goal) async {
+    final box = Hive.box<dynamic>(subjectBox);
+    await box.put(goal.subject, goal.toJson());
+  }
+
+  static Future<List<SubjectGoal>> getSubjectGoals() async {
+    final box = Hive.box<dynamic>(subjectBox);
+    return box.values
+        .map((item) => SubjectGoal.fromJson(_mapFromDynamic(item)))
+        .toList();
+  }
+
+  static Future<void> deleteSubjectGoal(String subject) async {
+    final box = Hive.box<dynamic>(subjectBox);
+    await box.delete(subject);
+  }
+
   static Future<void> clearAllData() async {
     await Hive.box<dynamic>(userBox).clear();
     await Hive.box<dynamic>(testBox).clear();
     await Hive.box<dynamic>(planBox).clear();
+    await Hive.box<dynamic>(subjectBox).clear();
   }
 }
