@@ -39,49 +39,33 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     });
     final activeSubject = subjectOptions.contains(selectedSubject) ? selectedSubject : allSubjectsLabel;
 
-    final filteredResults = activeSubject == allSubjectsLabel
-        ? provider.testResults
-        : provider.testResults.where((result) => result.subject == activeSubject).toList();
+    final filteredResults = provider.subjectResults(activeSubject);
+    final subjectColors = [Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.brown, Colors.indigo];
+    final subjects = activeSubject == allSubjectsLabel
+        ? subjectOptions.where((subject) => subject != allSubjectsLabel).toList()
+        : [activeSubject];
 
-    if (filteredResults.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('AI Analiz'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            ),
-          ],
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.analytics_outlined, size: 64, color: Colors.grey),
-                const SizedBox(height: 18),
-                Text('Seçili ders için henüz veri yok', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 12),
-                Text('Farklı bir ders seçin veya yeni test ekleyin.', textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[600])),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    final subjectChartData = subjects.map((subject) {
+      final results = provider.subjectResults(subject);
+      final spots = results.asMap().entries.map((entry) => FlSpot(entry.key.toDouble(), entry.value.actualNet)).toList();
+      return {
+        'subject': subject,
+        'spots': spots,
+        'color': subjectColors[subjects.indexOf(subject) % subjectColors.length],
+      };
+    }).toList();
 
-    final spots = filteredResults.asMap().entries.map((entry) => FlSpot(entry.key.toDouble(), entry.value.actualNet)).toList();
-    final values = filteredResults.map((r) => r.actualNet).toList();
-    final maxValue = values.reduce(max);
-    final minValue = values.reduce(min);
+    final hasSubjectData = subjectChartData.any((data) => (data['spots'] as List).isNotEmpty);
+    final maxX = subjectChartData.map((data) => (data['spots'] as List).length).fold(1, (prev, value) => value > prev ? value : prev) - 1;
+    final allValues = subjectChartData.expand((data) => (data['spots'] as List<FlSpot>).map((spot) => spot.y)).toList();
+    final maxValue = allValues.isNotEmpty ? allValues.reduce(max) : 1.0;
+    final minValue = allValues.isNotEmpty ? allValues.reduce(min) : 0.0;
     final chartRange = maxValue - minValue;
     final interval = chartRange > 0 ? (chartRange / 5).ceilToDouble() : 1.0;
     final minY = 0.0;
-    final maxY = maxValue + interval;
-    final maxX = spots.length > 1 ? (spots.length - 1).toDouble() : 1.0;
-    final analysisAdvice = provider.subjectRecommendation(activeSubject);
+    final maxY = hasSubjectData ? maxValue + interval : 5.0;
+    final chartWidth = max(MediaQuery.of(context).size.width, (maxX + 1) * 80.0);
+    final analysisAdvice = activeSubject == allSubjectsLabel ? provider.dailyRecommendation : provider.subjectRecommendation(activeSubject);
 
     return Scaffold(
       appBar: AppBar(
@@ -98,19 +82,42 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         children: [
           Text('Genel Performans', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              Expanded(child: StatChip(label: 'Ortalama Net', value: provider.averageNet.toStringAsFixed(1), color: Colors.indigo)),
-              const SizedBox(width: 12),
-              Expanded(child: StatChip(label: 'Hedef Açığı', value: provider.targetGap.toStringAsFixed(1), color: Colors.red)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: StatChip(label: 'Toplam Test', value: '${provider.totalTests}', color: Colors.teal)),
-              const SizedBox(width: 12),
-              Expanded(child: StatChip(label: 'Tamamlanma', value: '${(provider.completionRate * 100).toStringAsFixed(1)}%', color: Colors.orange)),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2 - 26,
+                child: StatChip(
+                  label: 'Ortalama Net',
+                  value: (activeSubject == allSubjectsLabel ? provider.averageNet : provider.subjectAverageNet(activeSubject)).toStringAsFixed(1),
+                  color: Colors.indigo,
+                ),
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2 - 26,
+                child: StatChip(
+                  label: 'Hedef Açığı',
+                  value: (activeSubject == allSubjectsLabel ? provider.targetGap : provider.subjectTargetGap(activeSubject)).toStringAsFixed(1),
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2 - 26,
+                child: StatChip(
+                  label: 'Toplam Test',
+                  value: '${activeSubject == allSubjectsLabel ? provider.totalTests : provider.subjectTestCount(activeSubject)}',
+                  color: Colors.teal,
+                ),
+              ),
+              SizedBox(
+                width: MediaQuery.of(context).size.width / 2 - 26,
+                child: StatChip(
+                  label: 'Tamamlanma',
+                  value: '${((activeSubject == allSubjectsLabel ? provider.completionRate : provider.subjectCompletionRate(activeSubject)) * 100).toStringAsFixed(1)}%',
+                  color: Colors.orange,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -141,61 +148,79 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               padding: const EdgeInsets.all(14),
               child: SizedBox(
                 height: 240,
-                child: LineChart(
-                  LineChartData(
-                    minX: 0,
-                    maxX: maxX.toDouble(),
-                    minY: minY,
-                    maxY: maxY,
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withAlpha((0.12 * 255).round()), strokeWidth: 1),
-                    ),
-                    lineTouchData: LineTouchData(
-                      enabled: true,
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (spot) => Theme.of(context).colorScheme.primary,
-                        getTooltipItems: (spots) {
-                          return spots.map((spot) {
-                            return LineTooltipItem('Net ${spot.y.toStringAsFixed(1)}', const TextStyle(color: Colors.white));
-                          }).toList();
-                        },
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          interval: interval,
-                          getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                child: hasSubjectData
+                    ? SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: chartWidth,
+                          child: LineChart(
+                            LineChartData(
+                              minX: 0,
+                              maxX: maxX.toDouble(),
+                              minY: minY,
+                              maxY: maxY,
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.withAlpha((0.12 * 255).round()), strokeWidth: 1),
+                              ),
+                              lineTouchData: LineTouchData(
+                                enabled: true,
+                                touchTooltipData: LineTouchTooltipData(
+                                  getTooltipItems: (spots) {
+                                    return spots.map((spot) {
+                                      final subject = subjects[spot.barIndex];
+                                      return LineTooltipItem(
+                                        '$subject: ${spot.y.toStringAsFixed(1)}',
+                                        TextStyle(color: (subjectChartData[spot.barIndex]['color'] as Color).computeLuminance() > 0.5 ? Colors.black : Colors.white),
+                                      );
+                                    }).toList();
+                                  },
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 40,
+                                    interval: interval,
+                                    getTitlesWidget: (value, meta) => Text(value.toStringAsFixed(0), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 32,
+                                    interval: 1,
+                                    getTitlesWidget: (value, meta) => Text('T${value.toInt() + 1}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  ),
+                                ),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              lineBarsData: subjectChartData.map((data) {
+                                final spots = data['spots'] as List<FlSpot>;
+                                return LineChartBarData(
+                                  spots: spots,
+                                  isCurved: true,
+                                  barWidth: 3,
+                                  color: data['color'] as Color,
+                                  belowBarData: BarAreaData(show: true, color: (data['color'] as Color).withAlpha((0.16 * 255).round())),
+                                  dotData: FlDotData(show: true),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          'Bu ders için henüz test verisi yok. Yeni test ekleyin.',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                         ),
                       ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 32,
-                          interval: 1,
-                          getTitlesWidget: (value, meta) => Text('T${value.toInt() + 1}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                        ),
-                      ),
-                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    borderData: FlBorderData(show: false),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: spots,
-                        isCurved: true,
-                        barWidth: 3,
-                        color: Theme.of(context).colorScheme.primary,
-                        belowBarData: BarAreaData(show: true, color: Theme.of(context).colorScheme.primary.withAlpha((0.16 * 255).round())),
-                        dotData: FlDotData(show: true),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ),

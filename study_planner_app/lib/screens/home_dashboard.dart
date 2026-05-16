@@ -124,14 +124,27 @@ class HomeDashboard extends StatelessWidget {
               const SizedBox(height: 8),
               Text('Mevcut: ${goal.currentNet.toStringAsFixed(1)}  •  Hedef: ${goal.targetNet.toStringAsFixed(1)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(child: StatChip(label: 'Net Ort', value: averageNet > 0 ? averageNet.toStringAsFixed(1) : goal.currentNet.toStringAsFixed(1), color: Colors.indigo)),
-                  const SizedBox(width: 8),
-                  Expanded(child: StatChip(label: 'Test Sayısı', value: '$tests', color: Colors.teal)),
-                  const SizedBox(width: 8),
-                  Expanded(child: StatChip(label: 'Önerilen Süre', value: '$recommendedStudy dk', color: Colors.deepPurple)),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Flexible(
+                        flex: 1,
+                        child: StatChip(label: 'Net Ortalaması', value: averageNet > 0 ? averageNet.toStringAsFixed(1) : goal.currentNet.toStringAsFixed(1), color: Colors.indigo),
+                      ),
+                      Flexible(
+                        flex: 1,
+                        child: StatChip(label: 'Test Sayısı', value: '$tests', color: Colors.teal),
+                      ),
+                      Flexible(
+                        flex: 1,
+                        child: StatChip(label: 'Önerilen Süre', value: '$recommendedStudy dk', color: Colors.deepPurple),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),

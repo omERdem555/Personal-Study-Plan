@@ -16,7 +16,7 @@ class TestInputScreen extends StatefulWidget {
 
 class _TestInputScreenState extends State<TestInputScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _subjectController = TextEditingController();
+  String? _selectedSubject;
   final _totalQuestionsController = TextEditingController();
   final _correctController = TextEditingController();
   final _wrongController = TextEditingController();
@@ -30,7 +30,6 @@ class _TestInputScreenState extends State<TestInputScreen> {
 
   @override
   void dispose() {
-    _subjectController.dispose();
     _totalQuestionsController.dispose();
     _correctController.dispose();
     _wrongController.dispose();
@@ -40,26 +39,48 @@ class _TestInputScreenState extends State<TestInputScreen> {
     super.dispose();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<AppProvider>();
+    if (_selectedSubject == null && provider.subjectGoals.isNotEmpty) {
+      _selectedSubject = provider.subjectGoals.first.subject;
+    }
+  }
+
   Future<void> _analyze() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedSubject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Önce bir ders seçin.')));
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      final user = context.read<AppProvider>().user;
+      final provider = context.read<AppProvider>();
+      final user = provider.user;
       if (user == null) return;
+      final goal = provider.getSubjectGoal(_selectedSubject!);
+      final maxQuestions = provider.subjectMaxQuestions(_selectedSubject!);
+      final totalQuestions = int.parse(_totalQuestionsController.text);
+      if (totalQuestions > maxQuestions) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Seçili ders için en fazla $maxQuestions soru girilebilir.')));
+        setState(() => _isLoading = false);
+        return;
+      }
 
       final correct = int.parse(_correctController.text);
       final wrong = int.parse(_wrongController.text);
       final actualNet = MathUtils.calculateNet(correct, wrong);
 
       final result = await ApiService.getPrediction(
-        subject: _subjectController.text.trim(),
-        totalQuestions: int.parse(_totalQuestionsController.text),
+        subject: _selectedSubject!,
+        totalQuestions: totalQuestions,
         correct: correct,
         wrong: wrong,
         timeSpent: int.parse(_studyTimeController.text),
         difficulty: double.parse(_difficultyController.text),
-        currentNet: user.currentNet,
-        targetNet: user.targetNet,
+        currentNet: goal?.currentNet ?? user.currentNet,
+        targetNet: goal?.targetNet ?? user.targetNet,
       );
 
       setState(() {
@@ -80,15 +101,17 @@ class _TestInputScreenState extends State<TestInputScreen> {
     final user = context.read<AppProvider>().user;
     if (user == null) return;
 
+    final selectedSubject = _selectedSubject ?? '';
+    final goal = context.read<AppProvider>().getSubjectGoal(selectedSubject);
     final result = TestResult(
-      subject: _subjectController.text.trim(),
+      subject: selectedSubject,
       totalQuestions: int.parse(_totalQuestionsController.text),
       correct: int.parse(_correctController.text),
       wrong: int.parse(_wrongController.text),
       studyTime: int.parse(_studyTimeController.text),
       difficulty: double.parse(_difficultyController.text),
-      currentNet: user.currentNet,
-      targetNet: user.targetNet,
+      currentNet: goal?.currentNet ?? user.currentNet,
+      targetNet: goal?.targetNet ?? user.targetNet,
       predictedNet: _predictedNet!,
       topicWeakness: _weaknessController.text.trim(),
       date: DateTime.now(),
@@ -101,7 +124,6 @@ class _TestInputScreenState extends State<TestInputScreen> {
   }
 
   void _clearForm() {
-    _subjectController.clear();
     _totalQuestionsController.clear();
     _correctController.clear();
     _wrongController.clear();
@@ -137,7 +159,32 @@ class _TestInputScreenState extends State<TestInputScreen> {
               const SizedBox(height: 12),
               Text('Ders, net ve çalışma süresi bilgilerinizi girin, AI tahmini ile doğru planlayın.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700])),
               const SizedBox(height: 20),
-              TextFormField(controller: _subjectController, decoration: const InputDecoration(labelText: 'Ders Adı'), validator: (value) => (value?.isEmpty ?? true) ? 'Ders adını girin' : null),
+              Builder(
+                builder: (context) {
+                  final provider = context.watch<AppProvider>();
+                  if (provider.subjectGoals.isEmpty) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Henüz ders eklenmemiş.', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey[700])),
+                        const SizedBox(height: 12),
+                        Text('Test girişi yapabilmek için önce Ana Sayfa üzerinden ders ekleyin.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600])),
+                      ],
+                    );
+                  }
+                  return DropdownButtonFormField<String>(
+                    value: _selectedSubject,
+                    decoration: const InputDecoration(labelText: 'Ders Seçiniz'),
+                    items: provider.subjectGoals.map((goal) => DropdownMenuItem(value: goal.subject, child: Text(goal.subject))).toList(),
+                    validator: (value) => (value?.isEmpty ?? true) ? 'Ders seçin' : null,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedSubject = value;
+                      });
+                    },
+                  );
+                },
+              ),
               const SizedBox(height: 14),
               TextFormField(controller: _totalQuestionsController, decoration: const InputDecoration(labelText: 'Toplam Soru'), keyboardType: TextInputType.number, validator: _validatePositiveInt),
               const SizedBox(height: 14),

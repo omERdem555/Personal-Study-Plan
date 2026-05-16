@@ -17,45 +17,59 @@ class StudyPlanScreen extends StatefulWidget {
 class _StudyPlanScreenState extends State<StudyPlanScreen> {
   bool _isLoading = false;
   StudyPlan? _currentPlan;
+  String? _selectedSubject;
 
   @override
   void initState() {
     super.initState();
-    _loadLatestPlan();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadLatestPlan();
+    });
   }
 
   void _loadLatestPlan() {
-    final plans = context.read<AppProvider>().studyPlans;
-    if (plans.isNotEmpty) {
-      setState(() => _currentPlan = plans.last);
-    }
+    final provider = context.read<AppProvider>();
+    final goals = provider.subjectGoals;
+    final selected = goals.isNotEmpty ? goals.first.subject : null;
+    final plan = selected != null ? provider.latestPlanForSubject(selected) : null;
+    setState(() {
+      _selectedSubject = selected;
+      _currentPlan = plan;
+    });
   }
 
   Future<void> _generatePlan() async {
+    if (_selectedSubject == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Önce bir ders seçin.')));
+      return;
+    }
     setState(() => _isLoading = true);
 
     try {
-      final user = context.read<AppProvider>().user;
+      final provider = context.read<AppProvider>();
+      final user = provider.user;
       if (user == null) return;
 
-      final recent = context.read<AppProvider>().latestResult;
+      final selected = _selectedSubject ?? user.targetSubject;
+      final goal = provider.getSubjectGoal(selected);
+      final recentForSubject = provider.latestResultForSubject(selected);
       final result = await ApiService.getPlan(
-        subject: recent?.subject ?? user.targetSubject,
-        totalQuestions: recent?.totalQuestions ?? 40,
-        correct: recent?.correct ?? 25,
-        wrong: recent?.wrong ?? 15,
-        currentNet: recent?.actualNet ?? user.currentNet,
-        targetNet: user.targetNet,
+        subject: selected,
+        totalQuestions: recentForSubject?.totalQuestions ?? 40,
+        correct: recentForSubject?.correct ?? 25,
+        wrong: recentForSubject?.wrong ?? 15,
+        currentNet: recentForSubject?.actualNet ?? goal?.currentNet ?? user.currentNet,
+        targetNet: goal?.targetNet ?? user.targetNet,
       );
 
       final plan = StudyPlan(
-        subject: user.targetSubject,
-        studyTime: result['study_time'],
-        predictedNet: result['predicted_net'],
+        subject: selected,
+        studyTime: result['study_time'] as int,
+        predictedNet: (result['predicted_net'] as num).toDouble(),
         date: DateTime.now(),
       );
 
-      await context.read<AppProvider>().addStudyPlan(plan);
+      await provider.addStudyPlan(plan);
       setState(() => _currentPlan = plan);
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,7 +86,10 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AppProvider>().user;
+    final provider = context.watch<AppProvider>();
+    final user = provider.user;
+    final goals = provider.subjectGoals;
+    final hasGoals = goals.isNotEmpty;
 
     if (user == null) {
       return const Center(child: CircularProgressIndicator());
@@ -88,43 +105,100 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
           ),
         ],
       ),
-      body: _currentPlan == null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.schedule,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Henüz çalışma planı yok',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'AI ile kişiselleştirilmiş plan oluşturun',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[500],
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  CustomButton(
-                    text: 'Plan Oluştur',
-                    isLoading: _isLoading,
-                    onPressed: _generatePlan,
-                  ),
-                ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Çalışma Planı',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 16),
+            if (hasGoals)
+              DropdownButtonFormField<String>(
+                value: _selectedSubject,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Ders Seçiniz',
+                ),
+                items: goals.map((goal) {
+                  return DropdownMenuItem(value: goal.subject, child: Text(goal.subject));
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _selectedSubject = value;
+                    _currentPlan = provider.latestPlanForSubject(value);
+                  });
+                },
               ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+            if (hasGoals)
+              const SizedBox(height: 20),
+            if (!hasGoals)
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.schedule,
+                      size: 64,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Önce bir ders ekleyin',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Plan oluşturmak için Ana Sayfa üzerinden ders ekleyin ve test girin.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      text: 'Ders Ekle',
+                      isLoading: false,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+            if (hasGoals && _currentPlan == null)
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Seçilen ders için henüz plan yok',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Seçili ders için AI destekli plan oluşturmak için butona dokunun.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      CustomButton(
+                        text: 'Plan Oluştur',
+                        isLoading: _isLoading,
+                        onPressed: _generatePlan,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (hasGoals && _currentPlan != null)
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -202,7 +276,7 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
                   const SizedBox(height: 16),
                   _PlanDetailCard(
                     title: 'Hedef Analizi',
-                    content: 'Mevcut netiniz ${_currentPlan!.predictedNet > user.currentNet ? "artış" : "koruma"} göstermektedir.',
+                    content: 'Seçili ders için öneri sizi hedefe yaklaştırmak üzere hazırlandı.',
                     icon: Icons.flag,
                   ),
                   const SizedBox(height: 12),
@@ -231,7 +305,9 @@ class _StudyPlanScreenState extends State<StudyPlanScreen> {
                   ),
                 ],
               ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 }

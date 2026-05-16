@@ -51,12 +51,58 @@ class AppProvider extends ChangeNotifier {
     return _testResults.where((result) => result.subject == subject).length;
   }
 
+  int subjectMaxQuestions(String subject) {
+    const limits = {
+      'Fen': 20,
+      'Matematik': 40,
+      'Türkçe': 40,
+      'Sosyal': 40,
+      'İngilizce': 40,
+    };
+    return limits[subject] ?? 40;
+  }
+
   double subjectRecommendedStudyTime(String subject) {
-    final plan = latestPlan;
-    if (plan != null && plan.subject == subject) {
+    final plan = latestPlanForSubject(subject);
+    if (plan != null) {
       return plan.studyTime.toDouble();
     }
     return averageStudyTime;
+  }
+
+  List<TestResult> subjectResults(String subject) {
+    if (subject == 'Tümü') return _testResults;
+    return _testResults.where((result) => result.subject == subject).toList();
+  }
+
+  TestResult? latestResultForSubject(String subject) {
+    final subjects = _testResults.where((result) => result.subject == subject).toList();
+    if (subjects.isEmpty) return null;
+    return subjects.last;
+  }
+
+  SubjectGoal? getSubjectGoal(String subject) {
+    try {
+      return _subjectGoals.firstWhere((goal) => goal.subject == subject);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  double subjectTargetGap(String subject) {
+    final goal = getSubjectGoal(subject);
+    if (goal == null) return 0.0;
+    return (goal.targetNet - subjectAverageNet(subject)).clamp(0.0, double.infinity);
+  }
+
+  double subjectCompletionRate(String subject) {
+    final goal = getSubjectGoal(subject);
+    if (goal == null || goal.targetNet == 0) return 0.0;
+    return (subjectAverageNet(subject) / goal.targetNet).clamp(0.0, 1.0);
+  }
+
+  int subjectStudyTimeTotal(String subject) {
+    return subjectResults(subject).fold(0, (sum, item) => sum + item.studyTime);
   }
 
   String subjectWeakness(String subject) {
